@@ -101,7 +101,7 @@ var selectSquare = function(){
 var cumulativeOffset = function(element) {
   var top = 0, left = 0;
   do {
-    top += element.offsetTop  || 0;
+    top += element.offsetTop || 0;
     left += element.offsetLeft || 0;
     element = element.offsetParent;
   } while(element);
@@ -126,7 +126,7 @@ var index2RC = function(row, col){
   return (x,y);
 }
 
-var fenSet = function(fen){
+var setFEN = function(fen){
   let piece;
   let rank = 8;
   let file = 1;
@@ -174,6 +174,26 @@ var fenSet = function(fen){
   }
 }
 
+// This can be written better
+var genFEN = function(){
+  let fen = '';
+  let empty = 0;
+  for(let i = 0 ; i < pieces.length ; i++){
+    if(i % 8 == 0 && i > 0){
+      if(empty){ fen += empty; empty = 0; }
+      fen += "/";
+    }
+    if(pieces[i] == "-"){
+      empty++;
+    } else {
+      if(empty){ fen += empty; empty = 0; }
+      fen += pieces[i];
+    }
+  }
+  if(empty){ fen += empty; empty = 0; }
+  return fen;
+}
+
 var drawPieces = function(){
   let canv = document.getElementById("canv");
   let ctx = canv.getContext("2d");
@@ -206,4 +226,36 @@ var drawPieces = function(){
       );
     }
   }
+}
+
+function formatPOSTData(object) {
+  var encodedString = '';
+  for (var key in object) {
+    if (object.hasOwnProperty(key)) {
+      if (encodedString.length > 0) {
+        encodedString += '&';
+      }
+      encodedString += encodeURI(key + '=' + object[key]);
+    }
+  }
+  return encodedString;
+}
+
+var saveFEN = function(){
+  let fen = genFEN();
+  let url = './handle_input.php';
+
+  let xhr = new XMLHttpRequest();
+  xhr.open('POST', url);
+  // xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhr.onload = function(){
+    if (xhr.status !== 200){
+      alert('Something went wrong with submission.  Please contact Brendan.')
+    }
+    console.log(xhr.status);
+  };
+  let payload = {
+    fen: fen
+  };
+  xhr.send(formatPOSTData(payload));
 }
