@@ -1,5 +1,5 @@
 window.onload = function(){
-  canvSize = 600;
+  canvSize = 700;
   ranks = files = 8;
   squareSize = canvSize / ranks;
   mouseCol = -1;
@@ -87,7 +87,7 @@ function trackmouse(event){
 }
 
 var selectSquare = function(){
-  console.log(rc2Index(mouseRow, mouseCol));
+  // console.log(rc2Index(mouseRow, mouseCol));
   if(selSquare == -1){
     selSquare = rc2Index(mouseRow, mouseCol);
   } else {
@@ -247,10 +247,12 @@ var saveFEN = function(){
 
   let xhr = new XMLHttpRequest();
   xhr.open('POST', url);
-  // xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
   xhr.onload = function(){
     if (xhr.status !== 200){
       alert('Something went wrong with submission.  Please contact Brendan.')
+    } else {
+      alert("Successfully saved board!")
     }
     console.log(xhr.status);
   };
@@ -258,4 +260,33 @@ var saveFEN = function(){
     fen: fen
   };
   xhr.send(formatPOSTData(payload));
+}
+
+var loadFEN = function(){
+  let url = './handle_input.php';
+
+  let xhr = new XMLHttpRequest();
+  xhr.open('GET', url);
+  xhr.onload = function(){
+    if (xhr.status !== 200){
+      alert('Something went wrong with submission.  Please contact Brendan.')
+    }
+    console.log(xhr.status);
+  };
+  xhr.onload = function() {
+    if (xhr.status != 200) { // analyze HTTP status of the response
+      alert(`Error ${xhr.status}: ${xhr.statusText}`); // e.g. 404: Not Found
+    } else { // show the result
+      // alert(`Data: ${xhr.response}`); // responseText is the server
+      let res = JSON.parse(xhr.response);
+      fen = res.fen;
+      setFEN(fen);
+    }
+  };
+  xhr.send();
+}
+
+var resetFEN = function(){
+  fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  setFEN(fen);
 }
