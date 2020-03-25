@@ -5,6 +5,7 @@ window.onload = function(){
   mouseCol = -1;
   mouseRow = -1;
   selSquare = -1;
+  blackView = false;
 
   pieces = [];
   fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -21,6 +22,10 @@ function configureCanvas(){
   canvas.height = canvSize;
   //canvas.addEventListener("mousemove", (event) => {trackmouse(event);});
   canvas.addEventListener("mousedown", (event) => {trackmouse(event);});
+}
+
+function switchView(){
+  blackView = !blackView;
 }
 
 function drawCanvas(){
@@ -55,7 +60,11 @@ function drawCanvas(){
         color = (((x + y) % 2 != 0) ? light : dark);
         ctx.fillStyle = "rgb("+color.r+", "+color.g+", "+color.b+")";
         ctx.font = "24px Arial";
-        ctx.fillText(8-y, x * squareSize, y * squareSize);
+        if(!blackView){
+          ctx.fillText(8-y, x * squareSize, y * squareSize);
+        } else {
+          ctx.fillText(y+1, x * squareSize, y * squareSize);
+        }
       }
       if(y == 7){
         ctx.textAlign = "left";
@@ -63,7 +72,11 @@ function drawCanvas(){
         color = (((x + y) % 2 != 0) ? light : dark);
         ctx.fillStyle = "rgb("+color.r+", "+color.g+", "+color.b+")";
         ctx.font = "24px Arial";
-        ctx.fillText(String.fromCharCode(x+97), x * squareSize, (y+1) * squareSize);
+        if(!blackView){
+          ctx.fillText(String.fromCharCode(x+97), x * squareSize, (y+1) * squareSize);
+        } else {
+          ctx.fillText(String.fromCharCode(7-x+97), x * squareSize, (y+1) * squareSize);
+        }
       }
     }
   }
@@ -217,8 +230,8 @@ var drawPieces = function(){
     if(path){
       let imgObj = new Image();
       imgObj.src = path;
-      let x = i % 8;
-      let y = (i-x) / 8;
+      let x = blackView ? 7 - i % 8 : i % 8;
+      let y = blackView ? (56-i+(i%8)) / 8 : (i-x) / 8;
       ctx.drawImage(
         imgObj,
         (x + 0.5) * squareSize - imgObj.width / 2,
