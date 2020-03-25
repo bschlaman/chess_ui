@@ -104,9 +104,12 @@ var selectSquare = function(){
   if(selSquare == -1){
     selSquare = rc2Index(mouseRow, mouseCol);
   } else {
+    selSquare = blackView ? blackIndex(selSquare) : selSquare;
     let piece = pieces[selSquare];
     pieces[selSquare] = "-";
-    pieces[rc2Index(mouseRow,mouseCol)] = piece;
+    let targetSquare = rc2Index(mouseRow,mouseCol);
+    targetSquare = blackView ? blackIndex(targetSquare) : targetSquare;
+    pieces[targetSquare] = piece;
     selSquare = -1;
   }
 }
@@ -124,6 +127,10 @@ var cumulativeOffset = function(element) {
     left: left
   };
 };
+
+var blackIndex = function(i){
+  return pieces.length - 1 - i;
+}
 
 var square = function(row, col){
   return String.fromCharCode(col+97) + (8-row);
