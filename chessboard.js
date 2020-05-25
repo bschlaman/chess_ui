@@ -5,6 +5,7 @@ window.onload = function(){
   mouseCol = -1;
   mouseRow = -1;
   selSquare = -1;
+  specialSquares = [];
   blackView = false;
 
   pieces = [];
@@ -41,6 +42,11 @@ function drawCanvas(){
     g: 102,
     b: 0
   };
+  let special = {
+    r: 245,
+    g: 66,
+    b: 93
+  };
 
   for(let y = 0 ; y < files ; y++){
     for(let x = 0 ; x < ranks ; x++){
@@ -48,6 +54,8 @@ function drawCanvas(){
       Object.assign(color, (((x + y) % 2 == 0) ? light : dark));
       if(rc2Index(y,x) == selSquare){
         color.r *= 1.8 ; color.g *= 1.8 ; color.b *= 1.8 ;
+      } else if(specialSquares.includes(rc2Index(y,x))){
+        Object.assign(color, special);
       }
 
       ctx.fillStyle = "rgb("+color.r+", "+color.g+", "+color.b+")";
@@ -97,6 +105,38 @@ function trackmouse(event){
 
   selectSquare();
 
+  // TESTING
+  showKSquare();
+
+}
+
+var showKSquare = function(){
+    specialSquares = [];
+    let r = [-1, 1];
+    let c = [-1, 1];
+    for(let x = 0 ; x < r.length ; x++){
+        for(let y = 0 ; y < c.length ; y++){
+            a1 = mouseRow + 2 * r[x];
+            a2 = mouseCol + 1 * c[y];
+            a3 = mouseRow + 1 * r[x];
+            a4 = mouseCol + 2 * c[y];
+            console.log(a1,a2,a3,a4);
+            if(a1 < 8 && a1 > -1 && a2 < 8 && a2 > -1){
+                specialSquares.push(rc2Index(mouseRow + 2 * r[x], mouseCol + 1 * c[y]));
+            }
+            if(a3 < 8 && a3 > -1 && a4 < 8 && a4 > -1){
+                specialSquares.push(rc2Index(mouseRow + 1 * r[x], mouseCol + 2 * c[y]));
+            }
+        }
+    }
+    // specialSquares.push(rc2Index(mouseRow - 2, mouseCol - 1));
+    // specialSquares.push(rc2Index(mouseRow - 1, mouseCol - 2));
+    // specialSquares.push(rc2Index(mouseRow - 2, mouseCol + 1));
+    // specialSquares.push(rc2Index(mouseRow - 1, mouseCol + 2));
+    // specialSquares.push(rc2Index(mouseRow + 2, mouseCol - 1));
+    // specialSquares.push(rc2Index(mouseRow + 1, mouseCol - 2));
+    // specialSquares.push(rc2Index(mouseRow + 2, mouseCol + 1));
+    // specialSquares.push(rc2Index(mouseRow + 1, mouseCol + 2));
 }
 
 var selectSquare = function(){
