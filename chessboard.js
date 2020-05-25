@@ -106,37 +106,47 @@ function trackmouse(event){
   selectSquare();
 
   // TESTING
-  showKSquare();
+  specialSquares = [];
+  let l1 = [];
+  let l2 = [];
+  let l3 = [];
+  let l4 = [];
+  l1 = getKSquare(rc2Index(mouseRow, mouseCol));
+  for(let x = 0 ; x < l1.length ; x++){
+    l2.push(...getKSquare(l1[x]));
+  }
+  for(let x = 0 ; x < l2.length ; x++){
+    l3.push(...getKSquare(l2[x]));
+  }
+  for(let x = 0 ; x < l3.length ; x++){
+    l4.push(...getKSquare(l3[x]));
+  }
+  specialSquares = l4;
+  // console.log(l4);
 
 }
 
-var showKSquare = function(){
-    specialSquares = [];
-    let r = [-1, 1];
-    let c = [-1, 1];
-    for(let x = 0 ; x < r.length ; x++){
-        for(let y = 0 ; y < c.length ; y++){
-            a1 = mouseRow + 2 * r[x];
-            a2 = mouseCol + 1 * c[y];
-            a3 = mouseRow + 1 * r[x];
-            a4 = mouseCol + 2 * c[y];
-            console.log(a1,a2,a3,a4);
-            if(a1 < 8 && a1 > -1 && a2 < 8 && a2 > -1){
-                specialSquares.push(rc2Index(mouseRow + 2 * r[x], mouseCol + 1 * c[y]));
-            }
-            if(a3 < 8 && a3 > -1 && a4 < 8 && a4 > -1){
-                specialSquares.push(rc2Index(mouseRow + 1 * r[x], mouseCol + 2 * c[y]));
-            }
-        }
+var getKSquare = function(i){
+  let [r,c] = index2RC(i);
+  let avail = [];
+  let a = [-1, 1];
+  for(let x = 0 ; x < a.length ; x++){
+    for(let y = 0 ; y < a.length ; y++){
+      a1 = r + 2 * a[x];
+      a2 = c + 1 * a[y];
+      a3 = r + 1 * a[x];
+      a4 = c + 2 * a[y];
+      if(a1 < 8 && a1 > -1 && a2 < 8 && a2 > -1){
+        avail.push(rc2Index(a1, a2));
+      }
+      if(a3 < 8 && a3 > -1 && a4 < 8 && a4 > -1){
+        avail.push(rc2Index(a3, a4));
+      }
     }
-    // specialSquares.push(rc2Index(mouseRow - 2, mouseCol - 1));
-    // specialSquares.push(rc2Index(mouseRow - 1, mouseCol - 2));
-    // specialSquares.push(rc2Index(mouseRow - 2, mouseCol + 1));
-    // specialSquares.push(rc2Index(mouseRow - 1, mouseCol + 2));
-    // specialSquares.push(rc2Index(mouseRow + 2, mouseCol - 1));
-    // specialSquares.push(rc2Index(mouseRow + 1, mouseCol - 2));
-    // specialSquares.push(rc2Index(mouseRow + 2, mouseCol + 1));
-    // specialSquares.push(rc2Index(mouseRow + 1, mouseCol + 2));
+  }
+  return avail;
+  // specialSquares.push(rc2Index(mouseRow + 2 * r[x], mouseCol + 1 * c[y]));
+  // specialSquares.push(rc2Index(mouseRow + 1 * r[x], mouseCol + 2 * c[y]));
 }
 
 var selectSquare = function(){
@@ -180,10 +190,10 @@ var rc2Index = function(row, col){
   return 8 * row + col;
 }
 
-var index2RC = function(row, col){
-  let x = i % 8;
-  let y = (i-x) / 8;
-  return (x,y);
+var index2RC = function(i){
+  let c = i % 8;
+  let r = (i-c) / 8;
+  return [r,c];
 }
 
 var setFEN = function(fen){
