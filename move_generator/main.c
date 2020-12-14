@@ -72,6 +72,7 @@ int parseFEN(char *fen, int *board){
 }
 
 int legalMoves(int piece, int sq){
+	int moves[27];
 	// need to add some logic on if the sq is valid
 	if(sq < 0 || sq > 63){
 		printf(RED "ERROR: invalid square\n" reset);
@@ -80,7 +81,8 @@ int legalMoves(int piece, int sq){
 	printf(YEL "Legal moves:\n" reset);
 	// pawns
 	if(piece == wP){
-		
+		moves[0] = sq - 8;
+		moves[1] = sq - 16;
 	}
 	if(piece == bP){
 		
@@ -89,6 +91,7 @@ int legalMoves(int piece, int sq){
 	if(piece == wR || piece == bR){
 		
 	}
+	return moves;
 }
 
 void resetBoard(int *board){
@@ -135,7 +138,12 @@ void printBoard(int *board){
 
 int main(){
 	int board[120];
+	int moves[27];
 	resetBoard(board);
 	parseFEN(FEN2, board);
 	printBoard(board);
+	moves = legalMoves(wP, 54);
+	for(int i = 0 ; i < (sizeof(moves)/sizeof(moves[0])) ; i++){
+		printf("move: %d\n", moves[i]);
+	}
 }
