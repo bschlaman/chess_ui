@@ -10,7 +10,7 @@
 void resetBoard(int *board);
 void printBoard(int *board);
 int sb(int sq64);
-int legalMoves(int piece, int sq);
+int * legalMoves(int* moves, int piece, int sq);
 
 int sb(int sq64){
 	return sq64 + 21 + 2 * (sq64 - sq64 % 8) / 8;
@@ -71,18 +71,31 @@ int parseFEN(char *fen, int *board){
 	return 0;
 }
 
-int legalMoves(int piece, int sq){
-	int moves[27];
+int * legalMoves(int* moves, int piece, int sq){
+	// plan here is to use the 120 sq board
+	// and move in particular "directions"
+	// until the piece is OFFBOARD
+	int i = 0;
+	for(i = 0 ; i < 27 ; i++){
+		moves[i] = -1;
+	}
+	moves[i] = -1;
 	// need to add some logic on if the sq is valid
 	if(sq < 0 || sq > 63){
 		printf(RED "ERROR: invalid square\n" reset);
-		return -1;
+		moves[0] = -1;
+		return moves;
 	}
 	printf(YEL "Legal moves:\n" reset);
 	// pawns
 	if(piece == wP){
-		moves[0] = sq - 8;
-		moves[1] = sq - 16;
+		moves[i] = sq - 10;
+		i++;
+		if(sq > 80 && sq < 89){
+			moves[i] = sq - 20;
+			i++;
+		}
+		moves[i] = -1;
 	}
 	if(piece == bP){
 		
@@ -138,12 +151,16 @@ void printBoard(int *board){
 
 int main(){
 	int board[120];
-	int moves[27];
+	int *moves;
 	resetBoard(board);
 	parseFEN(FEN2, board);
 	printBoard(board);
-	moves = legalMoves(wP, 54);
-	for(int i = 0 ; i < (sizeof(moves)/sizeof(moves[0])) ; i++){
+	moves = legalMoves(moves, wP, 54);
+
+	printf("sizeofmove: %d\n", sizeof(moves));
+	printf("sizeofmove: %d\n", sizeof(moves[0]));
+	//for(int i = 0 ; i < (sizeof(moves)/sizeof(moves[0])) ; i++){
+	for(int i = 0 ; moves[i] != -1 ; i++){
 		printf("move: %d\n", moves[i]);
 	}
 }
