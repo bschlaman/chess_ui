@@ -10,7 +10,8 @@
 void resetBoard(int *board);
 void printBoard(int *board, int options);
 int sb(int sq64);
-int legalMoves(int *moves, int *board, int piece, int sq);
+int pieceMoves(int *moves, int *board, int piece, int sq);
+int genAllMoves(int *moves, int *board, int side);
 void testMoves(int *moves, int *board, int piece, int sq);
 void saveMove(int from, int to, int capture);
 int getType(int piece);
@@ -69,7 +70,7 @@ int parseFEN(char *fen, int *board){
 
 			default:
 				printf(RED "Error with FEN\n" reset);
-					return -1;
+				return -1;
 
 		}
 
@@ -85,12 +86,24 @@ int parseFEN(char *fen, int *board){
 
 void saveMove(int from, int to, int capture){
 	printf(YEL " == move ==\n" reset);
-	printf("from: %d\n", from);
-	printf("to: %d\n", to);
+	printf("from: %d ", from);
+	printf("to: %d ", to);
 	printf("capture: %d\n", capture);
 }
 
-int legalMoves(int *moves, int *board, int piece, int sq){
+int genAllMoves(int *moves, int *board, int side){
+	int i, piece, sq;
+	for(i = 0 ; i < 64 ; i++){
+		sq = sb(i);
+		piece = board[sq];
+		if(board[sq] != EMPTY && getColor(board[sq]) == side){
+			printf(GRN " == PIECE: %c ==\n" reset, pieceChar[piece]);
+			pieceMoves(moves, board, board[sq], sq);
+		}
+	}
+}
+
+int pieceMoves(int *moves, int *board, int piece, int sq){
 	// plan here is to use the 120 sq board
 	// and move in particular "directions"
 	// until the piece is OFFBOARD
@@ -122,7 +135,6 @@ int legalMoves(int *moves, int *board, int piece, int sq){
 	if(!isPawn[piece]){
 		// type = proper index for translation[][]
 		int d, type = getType(piece);
-		printf(BLU "type: %d\n" reset, type);
 		// for each direction
 		for(d = 0 ; d < numDirections[type] ; d++){
 			cs = sq;
@@ -142,25 +154,12 @@ int legalMoves(int *moves, int *board, int piece, int sq){
 		return 0;
 	} else {
 		// pawns
-		if(piece == wP){
-			moves[i] = sq - 10;
-			i++;
-			if(sq > 80 && sq < 89){
-				moves[i] = sq - 20;
-				i++;
-			}
-			moves[i] = -1;
-			return 0;
-		}
-		if(piece == bP){
-			moves[i] = sq + 10;
-			i++;
-			if(sq > 30 && sq < 39){
-				moves[i] = sq + 20;
-				i++;
-			}
-			moves[i] = -1;
-			return 0;
+		// mapping {0,1} -> {-1,1}
+		cs = sq - (1 - 2 * getColor(piece)) * 10;
+		saveMove(sq, cs, 0);  moves[i] = cs; i++;
+		if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
+			cs = sq - (1 - 2 * getColor(piece)) * 20;
+			saveMove(sq, cs, 0);  moves[i] = cs; i++;
 		}
 	}
 	return -1;
@@ -215,7 +214,7 @@ void testMoves(int *moves, int *board, int piece, int sq){
 	resetBoard(tmpBoard);
 	tmpBoard[sq] = piece;
 
-	legalMoves(moves, board, piece, sq);
+	pieceMoves(moves, board, piece, sq);
 	printf(YEL " == piece: %c == \n" reset, pieceChar[piece]);
 	for(i = 0 ; moves[i] != -1 ; i++){
 		// printf("move %d: %d\n", i, moves[i]);
@@ -229,15 +228,18 @@ int main(){
 	int board[120];
 	int moves[27];
 	resetBoard(board);
-	parseFEN(FEN2, board);
+	parseFEN(START_FEN, board);
+	parseFEN(FEN3, board);
 	printBoard(board, 1);
 
 	// testMoves(moves, board, wP, 83);
 	// testMoves(moves, board, bP, 83);
 	// testMoves(moves, board, bP, 33);
-	testMoves(moves, board, wQ, 65);
+	// testMoves(moves, board, wP, 65);
 	// testMoves(moves, board, wN, 33);
 	// testMoves(moves, board, wB, 33);
 	// testMoves(moves, board, wQ, 33);
 	// testMoves(moves, board, wK, 33);
+	genAllMoves(moves, board, WHITE);
+
 }
