@@ -34,39 +34,29 @@ typedef struct {
 } S_UNDO;
 
 typedef struct {
-    int pieces[120];
-    U64 pawns[3]; // 00100000 00000000 ...
-    // [0] for white pawn, [1] for black, [2] for all together
+		// rename to pieces?
+    int board[120];
+    int fiftyMove;
 
-    int kingSq[2];
+		// fen?
 
     int side;
     int enPas;
-    int fiftyMove;
-
-    int play;
-    int histPlay;
-
-    int castlePerm;
+    int castlePermission;
 
     // Hash key, unique representation of board
     U64 posKey;
 
     // Number of pieces of type [x]
-    int pieceNum[13];
-    int bigPieces[2];
-    int majPieces[2];
-    int minPieces[2];
-    int material[2];
 
     S_UNDO history[50];
 
     // piece list
-    int pList[13][10];
+    int piecesList[13][10];
     // pList[wN][0] = E1;
     // pList[wN][1] = D4;
 
-} S_BOARD;
+} BOARD_STATE;
 
 
 char pieceChar[] = ".PNBRQKpnbrqkx";

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "defs.h"
 #include "colors.h"
 
@@ -7,13 +8,13 @@
 #define FEN2 "Q1b1k1r1/2p2p1p/p3q3/1p2p1p1/2P5/b1NB1N2/PP1B1PPP/R3K2R w KQ - 2 15"
 #define FEN3 "1r1qkb1r/1bp2pp1/p2p1n1p/3Np3/2pPP3/5N2/PPPQ1PPP/R1B2RK1 w k - 0 13"
 
-void resetBoard(int *board);
+void resetBoard(BOARD_STATE *bs);
 void printBoard(int *board, int options);
 int sb(int sq64);
-char *fr(int sq120);
+void fr(char *sqfr, int sq120);
 int pieceMoves(int *moves, int *board, int piece, int sq);
-int genAllMoves(int *moves, int *board, int side);
-void testMoves(int *moves, int *board, int piece, int sq);
+int genAllMoves(int *moves, BOARD_STATE *bs, int side);
+void testMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 void saveMove(int from, int to, int capture);
 int getType(int piece);
 int getColor(int piece);
@@ -22,12 +23,12 @@ int sb(int sq64){
 	return sq64 + 21 + 2 * (sq64 - sq64 % 8) / 8;
 }
 
-char *fr(int sq120){
+void fr(char *sqfr, int sq120){
 	int sq64;
 	sq64 = sq120 - 17 - 2 * (sq120 - sq120 % 10) / 10;
-	char sqfr[] = {(sq64 % 8) + 'a', ((sq64 - sq64 % 8) / 8) + '0', '\0'};
-	char *p = &sqfr[0];
-	return p;
+	char sqstr[] = {(sq64 % 8) + 'a', ((sq64 - sq64 % 8) / 8) + '0', '\0'};
+	strcpy(sqfr, sqstr);
+	// char *p = &sqfr[0];
 }
 
 int getType(int piece){
@@ -95,20 +96,23 @@ int parseFEN(char *fen, int *board){
 }
 
 void saveMove(int from, int to, int capture){
+	char sqfr[1];
 	printf(YEL " == move: " reset);
-	printf("from: %s ", fr(from));
-	printf("to: %s ", fr(to));
-	printf("capture: %d\n", capture);
+	fr(sqfr, from);
+	printf("from: %s ", sqfr);
+	fr(sqfr, to);
+	printf("to: %s ", sqfr);
+	printf("capture: %s\n", capture ? "yes" : "no");
 }
 
-int genAllMoves(int *moves, int *board, int side){
+int genAllMoves(int *moves, BOARD_STATE *bs, int side){
 	int i, piece, sq;
 	for(i = 0 ; i < 64 ; i++){
 		sq = sb(i);
-		piece = board[sq];
-		if(board[sq] != EMPTY && getColor(board[sq]) == side){
+		piece = bs -> board[sq];
+		if(bs -> board[sq] != EMPTY && getColor(bs -> board[sq]) == side){
 			printf(GRN " == PIECE: %c ==\n" reset, pieceChar[piece]);
-			pieceMoves(moves, board, board[sq], sq);
+			pieceMoves(moves, bs -> board, bs -> board[sq], sq);
 		}
 	}
 }
@@ -175,23 +179,24 @@ int pieceMoves(int *moves, int *board, int piece, int sq){
 	return -1;
 }
 
-void resetBoard(int *board){
+void resetBoard(BOARD_STATE *bs){
+	// this can go on a diet
 	int i;
 	for(i = 0 ; i < 120 ; i++){
-		board[i] = OFFBOARD;
+		bs -> board[i] = OFFBOARD;
 	}
 	for(i = 0 ; i < 64 ; i++){
-		board[sb(i)] = EMPTY;
+		bs -> board[sb(i)] = EMPTY;
 	}
 }
 
-void printBoard(int *board, int option){
+void printBoard(BOARD_STATE *bs, int option){
 	int i, rank, file, piece, sq64;
 
 	if(option == 1){
 		printf(BLU "\n120 Board:\n\n" reset);
 		for(i = 0 ; i < 120 ; i++){
-			printf("%2d ", board[i]);
+			printf("%2d ", bs -> board[i]);
 			if((i + 1) % 10 == 0){
 				printf("\n");
 			}
@@ -204,7 +209,7 @@ void printBoard(int *board, int option){
 		printf("%d ", rank);
 		for(file = 0 ; file < 8 ; file++){
 			sq64 = (8 - rank) * 8 + file;
-			piece = board[sb(sq64)];
+			piece = bs -> board[sb(sq64)];
 			printf("%2c", pieceChar[piece]);
 		}
 		printf("\n");
@@ -217,12 +222,12 @@ void printBoard(int *board, int option){
 	printf("\n");
 }
 
-void testMoves(int *moves, int *board, int piece, int sq){
+void testMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 	int i;
 	// create a dummy board to see candidate squares
-	int tmpBoard[120];
+	BOARD_STATE tmpBoard;
 	resetBoard(tmpBoard);
-	tmpBoard[sq] = piece;
+	tmpBoard -> board[sq] = piece;
 
 	pieceMoves(moves, board, piece, sq);
 	printf(YEL " == piece: %c == \n" reset, pieceChar[piece]);
@@ -235,21 +240,21 @@ void testMoves(int *moves, int *board, int piece, int sq){
 }
 
 int main(){
-	int board[120];
+	BOARD_STATE bs;
 	int moves[27];
-	resetBoard(board);
+	resetBoard(bs);
 	parseFEN(START_FEN, board);
 	parseFEN(FEN3, board);
 	printBoard(board, 0);
 
-	// testMoves(moves, board, wP, 83);
-	// testMoves(moves, board, bP, 83);
-	// testMoves(moves, board, bP, 33);
-	// testMoves(moves, board, wP, 65);
-	// testMoves(moves, board, wN, 33);
-	// testMoves(moves, board, wB, 33);
-	// testMoves(moves, board, wQ, 33);
-	// testMoves(moves, board, wK, 33);
-	genAllMoves(moves, board, WHITE);
+	// testMoves(moves, bs, wP, 83);
+	// testMoves(moves, bs, bP, 83);
+	// testMoves(moves, bs, bP, 33);
+	// testMoves(moves, bs, wP, 65);
+	// testMoves(moves, bs, wN, 33);
+	// testMoves(moves, bs, wB, 33);
+	// testMoves(moves, bs, wQ, 33);
+	// testMoves(moves, bs, wK, 33);
+	genAllMoves(moves, bs, WHITE);
 
 }
