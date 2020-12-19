@@ -78,16 +78,46 @@ int legalMoves(int *moves, int *board, int piece, int sq){
 	// until the piece is OFFBOARD
 	// cs = candidate square
 	int i = 0, cs = sq;
+
+	int directions[] = {8, 4, 4, 8, 8};
+	int translation[][8] = {
+		{-21, -12, 8, 19, 21, 12, -8, -19}, // knights
+		{-11, 9, 11, -9}, // bishops
+		{-10, -1, 10, 1}, // rooks
+		{-11, 9, 11, -9, -10, -1, 10, 1}, // queens
+		{-11, 9, 11, -9, -10, -1, 10, 1}  // kings
+	};
+
+	// initialize moves array
 	for(i = 0 ; i < 27 ; i++){
 		moves[i] = -1;
 	}
-	moves[i] = -1;
 	i = 0;
 	// TODO: is there a better way to check for invalid index?
 	if(sq < 0 || sq > 120 || board[sq] == OFFBOARD){
+		// TODO: get rid of this
 		printf(RED "ERROR: invalid square\n" reset);
 		return -1;
 	}
+
+	// a better move generation
+	if(!isPawn[piece]){
+		// type = proper index for translation[][]
+		int d, type = (piece - 2) % 6;
+		// for each direction
+		for(d = 0 ; d < directions[type] ; d++){
+			cs = sq;
+			// while sq not offboard
+			while(board[cs += translation[type][d]] != OFFBOARD){
+				moves[i] = cs;
+				i++;
+				// stop if piece is a knight or king
+				if(type == 0 || type == 4){ break; }
+			}
+		}
+		return 0;
+	}
+
 	// pawns
 	if(piece == wP){
 		moves[i] = sq - 10;
@@ -114,25 +144,25 @@ int legalMoves(int *moves, int *board, int piece, int sq){
 	if(piece == wR || piece == bR){
 		// up
 		cs = sq;
-		while(board[cs -= 10] != OFFBOARD){
+		while(board[cs -= 10] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// left
 		cs = sq;
-		while(board[cs -= 1] != OFFBOARD){
+		while(board[cs -= 1] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// down
 		cs = sq;
-		while(board[cs += 10] != OFFBOARD){
+		while(board[cs += 10] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// right
 		cs = sq;
-		while(board[cs += 1] != OFFBOARD){
+		while(board[cs += 1] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
@@ -143,25 +173,25 @@ int legalMoves(int *moves, int *board, int piece, int sq){
 	if(piece == wB || piece == bB){
 		// nw
 		cs = sq;
-		while(board[cs -= 11] != OFFBOARD){
+		while(board[cs -= 11] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// sw
 		cs = sq;
-		while(board[cs += 9] != OFFBOARD){
+		while(board[cs += 9] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// se
 		cs = sq;
-		while(board[cs += 11] != OFFBOARD){
+		while(board[cs += 11] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// ne
 		cs = sq;
-		while(board[cs -= 9] != OFFBOARD){
+		while(board[cs -= 9] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
@@ -172,49 +202,49 @@ int legalMoves(int *moves, int *board, int piece, int sq){
 	if(piece == wQ || piece == bQ){
 		// up
 		cs = sq;
-		while(board[cs -= 10] != OFFBOARD){
+		while(board[cs -= 10] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// left
 		cs = sq;
-		while(board[cs -= 1] != OFFBOARD){
+		while(board[cs -= 1] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// down
 		cs = sq;
-		while(board[cs += 10] != OFFBOARD){
+		while(board[cs += 10] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// right
 		cs = sq;
-		while(board[cs += 1] != OFFBOARD){
+		while(board[cs += 1] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// nw
 		cs = sq;
-		while(board[cs -= 11] != OFFBOARD){
+		while(board[cs -= 11] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// sw
 		cs = sq;
-		while(board[cs += 9] != OFFBOARD){
+		while(board[cs += 9] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// se
 		cs = sq;
-		while(board[cs += 11] != OFFBOARD){
+		while(board[cs += 11] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
 		// ne
 		cs = sq;
-		while(board[cs -= 9] != OFFBOARD){
+		while(board[cs -= 9] == EMPTY){
 			moves[i] = cs;
 			i++;
 		}
@@ -224,42 +254,42 @@ int legalMoves(int *moves, int *board, int piece, int sq){
 	// kings
 	if(piece == wK || piece == bK){
 		// up
-		cs = sq - 10; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq - 10; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// left
-		cs = sq - 1; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq - 1; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// down
-		cs = sq + 10; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq + 10; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// right
-		cs = sq + 1; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq + 1; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// nw
-		cs = sq - 11; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq - 11; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// sw
-		cs = sq + 9; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq + 9; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// se
-		cs = sq + 11; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq + 11; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// ne
-		cs = sq - 9; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq - 9; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		return 0;
 	}
 
 	// knights
 	if(piece == wN || piece == bN){
 		// 1
-		cs = sq - 21; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq - 21; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// 2
-		cs = sq - 12; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq - 12; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// 3
-		cs = sq + 8; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq + 8; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// 4
-		cs = sq + 19; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq + 19; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// 5
-		cs = sq + 21; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq + 21; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// 6
-		cs = sq + 12; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq + 12; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// 7
-		cs = sq - 8; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq - 8; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		// 8
-		cs = sq - 19; if(board[cs] != OFFBOARD){ moves[i] = cs; i++; }
+		cs = sq - 19; if(board[cs] == EMPTY){ moves[i] = cs; i++; }
 		return 0;
 	}
 }
@@ -308,15 +338,19 @@ void printBoard(int *board){
 
 void testMoves(int *moves, int *board, int piece, int sq){
 	int i;
-	resetBoard(board);
-	board[sq] = piece;
+	// create a dummy board to see candidate squares
+	int tmpBoard[120];
+	resetBoard(tmpBoard);
+	tmpBoard[sq] = piece;
+
 	legalMoves(moves, board, piece, sq);
 	printf(YEL " == piece: %c == \n" reset, pieceChar[piece]);
 	for(i = 0 ; moves[i] != -1 ; i++){
-		printf("move %d: %d\n", i, moves[i]);
-		board[moves[i]] = CANDIDATESQ;
+		// printf("move %d: %d\n", i, moves[i]);
+		tmpBoard[moves[i]] = CANDIDATESQ;
 	}
-	printBoard(board);
+
+	printBoard(tmpBoard);
 }
 
 int main(){
@@ -327,13 +361,11 @@ int main(){
 	printBoard(board);
 
 	// testMoves(moves, board, wP, 83);
-	// testMoves(moves, board, wP, 183);
-	// testMoves(moves, board, wP, 113);
 	// testMoves(moves, board, bP, 83);
 	// testMoves(moves, board, bP, 33);
-	// testMoves(moves, board, wR, 33);
-	// testMoves(moves, board, wK, 33);
+	testMoves(moves, board, wK, 33);
+	// testMoves(moves, board, wN, 33);
 	// testMoves(moves, board, wB, 33);
-	testMoves(moves, board, wQ, 33);
+	// testMoves(moves, board, wQ, 33);
 	// testMoves(moves, board, wK, 33);
 }

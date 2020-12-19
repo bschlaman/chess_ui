@@ -69,8 +69,9 @@ typedef struct {
 } S_BOARD;
 
 
-char pieceChar[] = ".PNBRQKpnbrqkX";
+char pieceChar[] = ".PNBRQKpnbrqkx";
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, CANDIDATESQ };
+int isPawn[] = {FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE};
 int OFFBOARD = -1;
 
 // /* MACROS */
