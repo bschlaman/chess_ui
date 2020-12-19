@@ -10,6 +10,7 @@
 void resetBoard(int *board);
 void printBoard(int *board, int options);
 int sb(int sq64);
+char *fr(int sq120);
 int pieceMoves(int *moves, int *board, int piece, int sq);
 int genAllMoves(int *moves, int *board, int side);
 void testMoves(int *moves, int *board, int piece, int sq);
@@ -21,9 +22,18 @@ int sb(int sq64){
 	return sq64 + 21 + 2 * (sq64 - sq64 % 8) / 8;
 }
 
+char *fr(int sq120){
+	int sq64;
+	sq64 = sq120 - 17 - 2 * (sq120 - sq120 % 10) / 10;
+	char sqfr[] = {(sq64 % 8) + 'a', ((sq64 - sq64 % 8) / 8) + '0', '\0'};
+	char *p = &sqfr[0];
+	return p;
+}
+
 int getType(int piece){
 	return (piece - 2) % 6;
 }
+
 int getColor(int piece){
 	// black is 7 - 12
 	return piece > 6 && piece < 13;
@@ -85,9 +95,9 @@ int parseFEN(char *fen, int *board){
 }
 
 void saveMove(int from, int to, int capture){
-	printf(YEL " == move ==\n" reset);
-	printf("from: %d ", from);
-	printf("to: %d ", to);
+	printf(YEL " == move: " reset);
+	printf("from: %s ", fr(from));
+	printf("to: %s ", fr(to));
 	printf("capture: %d\n", capture);
 }
 
@@ -230,7 +240,7 @@ int main(){
 	resetBoard(board);
 	parseFEN(START_FEN, board);
 	parseFEN(FEN3, board);
-	printBoard(board, 1);
+	printBoard(board, 0);
 
 	// testMoves(moves, board, wP, 83);
 	// testMoves(moves, board, bP, 83);
