@@ -9,12 +9,12 @@
 #define FEN3 "1r1qkb1r/1bp2pp1/p2p1n1p/3Np3/2pPP3/5N2/PPPQ1PPP/R1B2RK1 w k - 0 13"
 
 void resetBoard(BOARD_STATE *bs);
-void printBoard(int *board, int options);
+void printBoard(BOARD_STATE *bs, int options);
 int sb(int sq64);
 void fr(char *sqfr, int sq120);
 int pieceMoves(int *moves, int *board, int piece, int sq);
 int genAllMoves(int *moves, BOARD_STATE *bs, int side);
-void testMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
+void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 void saveMove(int from, int to, int capture);
 int getType(int piece);
 int getColor(int piece);
@@ -40,7 +40,7 @@ int getColor(int piece){
 	return piece > 6 && piece < 13;
 }
 
-int parseFEN(char *fen, int *board){
+int parseFEN(char *fen, BOARD_STATE *bs){
 	// ranks start canonically at 8
 	// but files are letters so who cares
 	int i, num, piece, rank = 8, file = 0, sq64;
@@ -87,11 +87,41 @@ int parseFEN(char *fen, int *board){
 
 		for(i = 0 ; i < num ; i++){
 			sq64 = (8 - rank) * 8 + file;
-			board[sb(sq64)] = piece;
+			bs -> board[sb(sq64)] = piece;
 			file++;
 		}
 		fen++;
 	}
+
+	// side
+	bs -> side = (*fen == 'w') ? WHITE : BLACK;
+	fen += 2;
+
+	// castling
+	for(i = 0 ; i < 4 ; i++){
+		if(*fen == ' ') break;
+		switch(*fen){
+			case 'K': bs -> castlePermission |= WKCA;
+			case 'Q': bs -> castlePermission |= WQCA;
+			case 'k': bs -> castlePermission |= BKCA;
+			case 'q': bs -> castlePermission |= BQCA;
+			default: break;
+		}
+	}
+	fen++;
+	ASSERT(pos -> castlePerm >= 1 && pos -> castlePerm <= 15);
+
+	// en passant
+	if(*fen != '-'){
+		file = fen[0] - 'a';
+		rank = fen[1] - '1';
+		ASSERT(file >= 0 && file <= 8);
+		ASSERT(rank >= 0 && rank <= 8);
+		bs -> enPas = FR2SQ(file, rank);
+	}
+
+
+
 	return 0;
 }
 
@@ -222,39 +252,30 @@ void printBoard(BOARD_STATE *bs, int option){
 	printf("\n");
 }
 
-void testMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
+void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 	int i;
 	// create a dummy board to see candidate squares
-	BOARD_STATE tmpBoard;
+	BOARD_STATE tmpBoard[1];
 	resetBoard(tmpBoard);
 	tmpBoard -> board[sq] = piece;
 
-	pieceMoves(moves, board, piece, sq);
+	pieceMoves(moves, tmpBoard -> board, piece, sq);
 	printf(YEL " == piece: %c == \n" reset, pieceChar[piece]);
 	for(i = 0 ; moves[i] != -1 ; i++){
-		// printf("move %d: %d\n", i, moves[i]);
-		tmpBoard[moves[i]] = CANDIDATESQ;
+		tmpBoard -> board[moves[i]] = CANDIDATESQ;
 	}
 
 	printBoard(tmpBoard, 0);
 }
 
 int main(){
-	BOARD_STATE bs;
+	BOARD_STATE bs[1];
 	int moves[27];
 	resetBoard(bs);
-	parseFEN(START_FEN, board);
-	parseFEN(FEN3, board);
-	printBoard(board, 0);
+	parseFEN(START_FEN, bs -> board);
+	parseFEN(FEN3, bs -> board);
+	printBoard(bs, 0);
 
-	// testMoves(moves, bs, wP, 83);
-	// testMoves(moves, bs, bP, 83);
-	// testMoves(moves, bs, bP, 33);
-	// testMoves(moves, bs, wP, 65);
-	// testMoves(moves, bs, wN, 33);
-	// testMoves(moves, bs, wB, 33);
-	// testMoves(moves, bs, wQ, 33);
-	// testMoves(moves, bs, wK, 33);
 	genAllMoves(moves, bs, WHITE);
 
 }

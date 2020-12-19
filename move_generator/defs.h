@@ -1,5 +1,18 @@
 #include <stdlib.h>
 
+#define DEBUG
+#ifndef DEBUG
+#define ASSERT(n)
+#else
+#define ASSERT(n) \
+if(!(n)){ \
+    printf(RED "%s ===== ERROR\n", #n); \
+    printf("file: %s", __FILE__); \
+    printf("line: %d\n" reset, __LINE__); \
+    exit(1); \
+}
+#endif
+
 #define START_FEN  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 typedef unsigned long long U64;
