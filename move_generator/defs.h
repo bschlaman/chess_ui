@@ -6,9 +6,9 @@
 #else
 #define ASSERT(n) \
 if(!(n)){ \
-    printf(RED "%s ===== ERROR\n", #n); \
-    printf("file: %s", __FILE__); \
-    printf("line: %d\n" reset, __LINE__); \
+    printf(RED "====== ERROR\n" YEL "%s\n" reset, #n); \
+    printf(RED "file: " reset "%s ", __FILE__); \
+    printf(RED "line: " reset "%d\n", __LINE__); \
     exit(1); \
 }
 #endif
