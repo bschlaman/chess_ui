@@ -6,7 +6,7 @@
 
 #define FEN1 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
 #define FEN2 "Q1b1k1r1/2p2p1p/p3q3/1p2p1p1/2P5/b1NB1N2/PP1B1PPP/R3K2R w KQ - 2 15"
-#define FEN3 "1r1qkb1r/1bp2pp1/p2p1n1p/3Np3/2pPP3/5N2/PPPQ1PPP/R1B2RK1 b k a6 0 13"
+#define FEN3 "1k6/2p5/5p2/3pP3/6Pp/1N6/2K5/8 w - d6 3 3"
 #define FEN4 "3k2Q1/7R/1p1p4/p1p2P2/2P1K3/1P3P2/P7/8 b - b8 12 51"
 
 void resetBoard(BOARD_STATE *bs);
@@ -15,7 +15,7 @@ int sq64To120(int sq64);
 int sq120To64(int sq120);
 int frToSq(int file, int rank);
 void sqName(char *sqfr, int sq120);
-int pieceMoves(int *moves, int *board, int piece, int sq);
+int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 int genAllMoves(int *moves, BOARD_STATE *bs, int side);
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 void saveMove(int from, int to, int capture);
@@ -231,8 +231,18 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 			saveMove(sq, cs, 1);  moves[i] = cs; i++;
 		}
 		// enPas
-		if(bs -> enPas != EMPTY){
-			
+		cs = bs -> enPas;
+		if(cs != EMPTY){
+			ASSERT((cs <= 78 && cs >=71) || (cs <= 48 && cs >= 41));
+			// enPasCaptureFromSq is the same as what it would look like to captrue TO that sq
+			enPasCaptureFromSq = cs - (1 - 2 * getColor(piece)) * 10 + 1;
+			if(sq == enPasCaptureFromSq){
+				saveMove(sq, cs, 1);  moves[i] = cs; i++;
+			}
+			enPasCaptureFromSq = cs - (1 - 2 * getColor(piece)) * 10 - 1;
+			if(sq == enPasCaptureFromSq){
+				saveMove(sq, cs, 1);  moves[i] = cs; i++;
+			}
 		}
 
 	}
@@ -303,7 +313,7 @@ void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 	resetBoard(tmpBoard);
 	tmpBoard -> board[sq] = piece;
 
-	pieceMoves(moves, tmpBoard -> board, piece, sq);
+	pieceMoves(moves, tmpBoard, piece, sq);
 	printf(YEL " == piece: %c == \n" reset, pieceChar[piece]);
 	for(i = 0 ; moves[i] != -1 ; i++){
 		tmpBoard -> board[moves[i]] = CANDIDATESQ;
@@ -316,10 +326,7 @@ int main(){
 	BOARD_STATE bs[1];
 	int moves[27];
 	resetBoard(bs);
-	parseFEN(START_FEN, bs);
-	printf("asdf\n");
-	resetBoard(bs);
-	parseFEN(FEN4, bs);
+	parseFEN(FEN3, bs);
 	printBoard(bs, 0);
 
 	genAllMoves(moves, bs, WHITE);

@@ -73,6 +73,7 @@ typedef struct {
 
 
 char pieceChar[] = ".PNBRQKpnbrqkx";
+// use EMPTY for no piece, and also when there is no enPas square
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, CANDIDATESQ };
 int isPawn[] = {FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE};
 int OFFBOARD = -1;
