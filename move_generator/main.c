@@ -217,10 +217,13 @@ int pieceMoves(int *moves, int *board, int piece, int sq){
 		// pawns
 		// mapping {0,1} -> {-1,1}
 		cs = sq - (1 - 2 * getColor(piece)) * 10;
-		saveMove(sq, cs, 0);  moves[i] = cs; i++;
+		if(board[cs] == EMPTY){ saveMove(sq, cs, 0);  moves[i] = cs; i++; }
 		if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
 			cs = sq - (1 - 2 * getColor(piece)) * 20;
-			saveMove(sq, cs, 0);  moves[i] = cs; i++;
+			if(board[cs] == EMPTY){
+				// TODO: set enPas
+				saveMove(sq, cs, 0);  moves[i] = cs; i++;
+			}
 		}
 	}
 	return -1;
