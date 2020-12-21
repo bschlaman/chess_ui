@@ -6,13 +6,15 @@
 
 #define FEN1 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
 #define FEN2 "Q1b1k1r1/2p2p1p/p3q3/1p2p1p1/2P5/b1NB1N2/PP1B1PPP/R3K2R w KQ - 2 15"
-#define FEN3 "1r1qkb1r/1bp2pp1/p2p1n1p/3Np3/2pPP3/5N2/PPPQ1PPP/R1B2RK1 b k a7 0 13"
+#define FEN3 "1r1qkb1r/1bp2pp1/p2p1n1p/3Np3/2pPP3/5N2/PPPQ1PPP/R1B2RK1 b k a6 0 13"
+#define FEN4 "3k2Q1/7R/1p1p4/p1p2P2/2P1K3/1P3P2/P7/8 b - b8 12 51"
 
 void resetBoard(BOARD_STATE *bs);
 void printBoard(BOARD_STATE *bs, int options);
-int sb(int sq64);
+int sq64To120(int sq64);
+int sq120To64(int sq120);
 int frToSq(int file, int rank);
-void frStr(char *sqfr, int sq120);
+void sqName(char *sqfr, int sq120);
 int pieceMoves(int *moves, int *board, int piece, int sq);
 int genAllMoves(int *moves, BOARD_STATE *bs, int side);
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
@@ -20,18 +22,21 @@ void saveMove(int from, int to, int capture);
 int getType(int piece);
 int getColor(int piece);
 
-int sb(int sq64){
+int sq64To120(int sq64){
 	return sq64 + 21 + 2 * (sq64 - sq64 % 8) / 8;
+}
+
+int sq120To64(int sq120){
+	return sq120 - 17 - 2 * (sq120 - sq120 % 10) / 10;;
 }
 
 int frToSq(int file, int rank){
 	return (8 - rank) * 8 + file;
 }
 
-void frStr(char *sqfr, int sq120){
-	int sq64;
-	sq64 = sq120 - 17 - 2 * (sq120 - sq120 % 10) / 10;
-	char sqstr[] = {(sq64 % 8) + 'a', ((sq64 - sq64 % 8) / 8) + '0', '\0'};
+void sqName(char *sqfr, int sq120){
+	int sq64 = sq120To64(sq120);
+	char sqstr[] = {(sq64 % 8) + 'a', '8' - ((sq64 - sq64 % 8) / 8), '\0'};
 	strcpy(sqfr, sqstr);
 }
 
@@ -90,7 +95,7 @@ int parseFEN(char *fen, BOARD_STATE *bs){
 		}
 
 		for(i = 0 ; i < num ; i++){
-			bs -> board[sb(frToSq(file, rank))] = piece;
+			bs -> board[sq64To120(frToSq(file, rank))] = piece;
 			file++;
 		}
 		fen++;
@@ -114,12 +119,12 @@ int parseFEN(char *fen, BOARD_STATE *bs){
 		fen++;
 	}
 	fen++;
-	ASSERT(bs -> castlePermission >= 1 && bs -> castlePermission <= 15);
+	ASSERT(bs -> castlePermission >= 0 && bs -> castlePermission <= 15);
 
 	// en passant
 	if(*fen != '-'){
 		file = fen[0] - 'a';
-		rank = fen[1] - '1';
+		rank = fen[1] - '0';
 		ASSERT(file >= 0 && file <= 8);
 		ASSERT(rank >= 0 && rank <= 8);
 		bs -> enPas = frToSq(file, rank);
@@ -128,9 +133,11 @@ int parseFEN(char *fen, BOARD_STATE *bs){
 	// TODO: put this in printBoard
 	printf(BLU "side to move: %s\n" reset, bs -> side == WHITE ? "white" : "black");
 	char sqfr[1];
-	frStr(sqfr, sb(bs -> enPas));
-	printf(BLU "enPas square: %s\n" reset, sqfr);
-	printf(BLU "enPas square: %d\n" reset, bs -> enPas);
+	sqName(sqfr, sq64To120(bs -> enPas));
+	printf(BLU "enPas namesquare: %s\n" reset, sqfr);
+	printf(BLU "enPas 64square: %d\n" reset, bs -> enPas);
+	printf(BLU "rank: %d\n" reset, rank);
+	printf(BLU "file: %d\n" reset, file);
 
 	return 0;
 }
@@ -138,9 +145,9 @@ int parseFEN(char *fen, BOARD_STATE *bs){
 void saveMove(int from, int to, int capture){
 	char sqfr[1];
 	printf(YEL " == move: " reset);
-	frStr(sqfr, from);
+	sqName(sqfr, from);
 	printf("from: %s ", sqfr);
-	frStr(sqfr, to);
+	sqName(sqfr, to);
 	printf("to: %s ", sqfr);
 	printf("capture: %s\n", capture ? "yes" : "no");
 }
@@ -148,11 +155,11 @@ void saveMove(int from, int to, int capture){
 int genAllMoves(int *moves, BOARD_STATE *bs, int side){
 	int i, piece, sq;
 	for(i = 0 ; i < 64 ; i++){
-		sq = sb(i);
+		sq = sq64To120(i);
 		piece = bs -> board[sq];
-		if(bs -> board[sq] != EMPTY && getColor(bs -> board[sq]) == side){
+		if(piece != EMPTY && getColor(piece) == side){
 			printf(GRN " == PIECE: %c ==\n" reset, pieceChar[piece]);
-			pieceMoves(moves, bs -> board, bs -> board[sq], sq);
+			pieceMoves(moves, bs -> board, piece, sq);
 		}
 	}
 }
@@ -226,11 +233,13 @@ void resetBoard(BOARD_STATE *bs){
 		bs -> board[i] = OFFBOARD;
 	}
 	for(i = 0 ; i < 64 ; i++){
-		bs -> board[sb(i)] = EMPTY;
+		bs -> board[sq64To120(i)] = EMPTY;
 	}
-	bs -> side = 2;
+	bs -> side = BOTH;
 	bs -> castlePermission = 0;
-	bs -> enPas = NULL;
+	// TODO: make sure these are always 120sq
+	// because EMPTY = 0
+	bs -> enPas = EMPTY;
 }
 
 void printBoard(BOARD_STATE *bs, int option){
@@ -251,7 +260,7 @@ void printBoard(BOARD_STATE *bs, int option){
 	for(rank = 8 ; rank > 0 ; rank--){
 		printf("%d ", rank);
 		for(file = 0 ; file < 8 ; file++){
-			piece = bs -> board[sb(frToSq(file,rank))];
+			piece = bs -> board[sq64To120(frToSq(file, rank))];
 			printf("%2c", pieceChar[piece]);
 		}
 		printf("\n");
@@ -287,7 +296,7 @@ int main(){
 	parseFEN(START_FEN, bs);
 	printf("asdf\n");
 	resetBoard(bs);
-	parseFEN(FEN3, bs);
+	parseFEN(FEN4, bs);
 	printBoard(bs, 0);
 
 	genAllMoves(moves, bs, WHITE);
