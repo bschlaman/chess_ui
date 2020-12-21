@@ -130,15 +130,6 @@ int parseFEN(char *fen, BOARD_STATE *bs){
 		bs -> enPas = frToSq(file, rank);
 	}
 
-	// TODO: put this in printBoard
-	printf(BLU "side to move: %s\n" reset, bs -> side == WHITE ? "white" : "black");
-	char sqfr[1];
-	sqName(sqfr, sq64To120(bs -> enPas));
-	printf(BLU "enPas namesquare: %s\n" reset, sqfr);
-	printf(BLU "enPas 64square: %d\n" reset, bs -> enPas);
-	printf(BLU "rank: %d\n" reset, rank);
-	printf(BLU "file: %d\n" reset, file);
-
 	return 0;
 }
 
@@ -159,17 +150,18 @@ int genAllMoves(int *moves, BOARD_STATE *bs, int side){
 		piece = bs -> board[sq];
 		if(piece != EMPTY && getColor(piece) == side){
 			printf(GRN " == PIECE: %c ==\n" reset, pieceChar[piece]);
-			pieceMoves(moves, bs -> board, piece, sq);
+			pieceMoves(moves, bs, piece, sq);
 		}
 	}
 }
 
-int pieceMoves(int *moves, int *board, int piece, int sq){
+int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 	// plan here is to use the 120 sq board
 	// and move in particular "directions"
 	// until the piece is OFFBOARD
 	// cs = candidate square
-	int i = 0, cs = sq;
+	int i = 0, cs = sq, enPasCaptureFromSq = OFFBOARD;
+	int *board = bs -> board;
 
 	int numDirections[] = {8, 4, 4, 8, 8};
 	int translation[][8] = {
@@ -215,16 +207,34 @@ int pieceMoves(int *moves, int *board, int piece, int sq){
 		return 0;
 	} else {
 		// pawns
-		// mapping {0,1} -> {-1,1}
+
+		// forward 1
+		// mapping {0,1} -> {-1,1} -> {-10,10}
 		cs = sq - (1 - 2 * getColor(piece)) * 10;
 		if(board[cs] == EMPTY){ saveMove(sq, cs, 0);  moves[i] = cs; i++; }
+		// forward 2
 		if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
 			cs = sq - (1 - 2 * getColor(piece)) * 20;
 			if(board[cs] == EMPTY){
-				// TODO: set enPas
+				// TODO: set enPas, although that would probably be in a different function
 				saveMove(sq, cs, 0);  moves[i] = cs; i++;
 			}
 		}
+
+		// captures
+		cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
+		if(board[cs] != EMPTY && board[cs] != OFFBOARD){
+			saveMove(sq, cs, 1);  moves[i] = cs; i++;
+		}
+		cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
+		if(board[cs] != EMPTY && board[cs] != OFFBOARD){
+			saveMove(sq, cs, 1);  moves[i] = cs; i++;
+		}
+		// enPas
+		if(bs -> enPas != EMPTY){
+			
+		}
+
 	}
 	return -1;
 }
@@ -274,6 +284,16 @@ void printBoard(BOARD_STATE *bs, int option){
 		printf(RED "%2c" reset, file + 'a');
 	}
 	printf("\n");
+
+	printf(BLU "side to move: %s\n" reset, bs -> side == WHITE ? "white" : "black");
+	char sqfr[1];
+	sqName(sqfr, sq64To120(bs -> enPas));
+	printf(BLU "enPas namesquare: %s\n" reset, sqfr);
+	printf(BLU "enPas 64square: %d\n" reset, bs -> enPas);
+	printf(BLU "rank: %d\n" reset, rank);
+	printf(BLU "file: %d\n" reset, file);
+
+
 }
 
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
