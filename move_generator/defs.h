@@ -16,6 +16,11 @@ if(!(n)){ \
 enum { false, true };
 
 #define START_FEN  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define FEN1 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
+// good for white king in check
+#define FEN2 "rnbq2n1/ppp2ppp/5Nk1/1b6/4PPp1/2P5/PP2K1PP/RNBQ1BR1 w KQkq f3 2 15"
+#define FEN3 "1k6/2p5/5p2/3pP3/6Pp/1N6/2K5/8 b - g3 3 3"
+#define FEN4 "3k2Q1/7R/1p1p4/p1p2P2/2P1K3/1P3P2/P7/8 b - c6 12 51"
 
 typedef unsigned long long U64;
 

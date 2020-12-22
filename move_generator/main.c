@@ -6,10 +6,6 @@
 #include "defs.h"
 #include "colors.h"
 
-#define FEN1 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
-#define FEN2 "rnbq2n1/ppp2ppp/5Nk1/1b6/4PPp1/2P5/PP2K1PP/RNBQ1BR1 w KQkq f3 2 15"
-#define FEN3 "1k6/2p5/5p2/3pP3/6Pp/1N6/2K5/8 b - g3 3 3"
-#define FEN4 "3k2Q1/7R/1p1p4/p1p2P2/2P1K3/1P3P2/P7/8 b - c6 12 51"
 
 void resetBoard(BOARD_STATE *bs);
 void printBoard(BOARD_STATE *bs, int options);
@@ -309,6 +305,8 @@ int parseArgs(char *inputFEN, int argc, char *argv[]){
 		switch (c){
 			case 'f':
 				strcpy(inputFEN, optarg);
+				// TODO: this is clunky, need a better way to check this
+				return 1;
 				break;
 			case '?':
 				if (optopt == 'f')
@@ -317,11 +315,12 @@ int parseArgs(char *inputFEN, int argc, char *argv[]){
 					fprintf(stderr, "Unknown option `-%c'.\n", optopt);
 				else
 					fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
-				return 1;
+				return -1;
 			default:
 				exit(1);
 		}
 	}
+	// default to NORMAL_MODE
 	return 0;
 }
 
@@ -331,20 +330,36 @@ int main(int argc, char *argv[]){
 	// must always initialize board!
 	resetBoard(bs);
 	printf("Checking board initialization...\n");
-	ASSERT(bs -> castlePermission >= 0 && bs -> castlePermission <= 15);
-	// parseFEN(FEN2, bs);
-	// printBoard(bs, 0);
-	// genAllMoves(moves, bs, BLACK);
+	ASSERT(bs -> castlePermission == 0);
 
 	char inputFEN[99];
 	char outputFEN[99];
-	int ret = parseArgs(inputFEN, argc, argv);
-	// upon success
-	if(ret == 0){
+
+	enum { NORMAL_MODE, FEN_MODE } mode = NORMAL_MODE;
+	mode = parseArgs(inputFEN, argc, argv);
+	switch(mode){
+		case NORMAL_MODE:
+			break;
+		case FEN_MODE:
+			break;
+		default:
+			printf(RED "ERROR: invalid mode: %d\n" reset, mode);
+			break;
+	}
+
+	// TODO: put this inside the switch block
+	// NORMAL_MODE
+	if(mode == 0){
+		parseFEN(FEN2, bs);
+		printBoard(bs, 0);
+		genAllMoves(moves, bs, WHITE);
+	}
+	// FEN_MODE
+	if(mode == 1){
 		parseFEN(inputFEN, bs);
 		printBoard(bs, 0);
-		printf(CYN "inputFEN: %s\n" reset, inputFEN);
 		genFEN(outputFEN, bs);
+		printf(CYN "inputFEN: %s\n" reset, inputFEN);
 		printf(CYN "outputFEN: %s\n" reset, outputFEN);
 	}
 }
