@@ -44,6 +44,7 @@ int parseFEN(char *fen, BOARD_STATE *bs){
 
 			default:
 				printf(RED "Error with FEN\n" reset);
+				exit(1);
 				return -1;
 
 		}
