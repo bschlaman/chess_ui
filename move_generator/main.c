@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <ctype.h>	
 #include "defs.h"
 #include "colors.h"
 
@@ -11,10 +13,6 @@
 
 void resetBoard(BOARD_STATE *bs);
 void printBoard(BOARD_STATE *bs, int options);
-int sq64to120(int sq64);
-int sq120to64(int sq120);
-int frToSq64(int file, int rank);
-void sqName(char *sqfr, int sq120);
 int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 int genAllMoves(int *moves, BOARD_STATE *bs, int side);
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
@@ -52,92 +50,8 @@ int getColor(int piece){
 	return piece > 6 && piece < 13;
 }
 
-int parseFEN(char *fen, BOARD_STATE *bs){
-	// ranks start canonically at 8
-	// but files are letters so who cares
-	int i, num, piece, rank = 8, file = 0, sq64;
-	while(*fen && rank > 0){
-		num = 1;
-		switch(*fen){
-			case 'p': piece = bP; break;
-			case 'r': piece = bR; break;
-			case 'n': piece = bN; break;
-			case 'b': piece = bB; break;
-			case 'q': piece = bQ; break;
-			case 'k': piece = bK; break;
-			case 'P': piece = wP; break;
-			case 'R': piece = wR; break;
-			case 'N': piece = wN; break;
-			case 'B': piece = wB; break;
-			case 'Q': piece = wQ; break;
-			case 'K': piece = wK; break;
-
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-				piece = EMPTY;
-				num = *fen - '0';
-				break;
-
-			case '/':
-			case ' ':
-				rank--;
-				file = 0;
-				fen++;
-				continue;
-
-			default:
-				printf(RED "Error with FEN\n" reset);
-				return -1;
-
-		}
-
-		for(i = 0 ; i < num ; i++){
-			bs -> board[sq64to120(frToSq64(file, rank))] = piece;
-			file++;
-		}
-		fen++;
-	}
-
-	// side
-	printf(GRN "%s\n" reset, fen);
-	bs -> side = (*fen == 'w') ? WHITE : BLACK;
-	fen += 2;
-
-	// castling
-	for(i = 0 ; i < 4 ; i++){
-		if(*fen == ' ') break;
-		switch(*fen){
-			case 'K': bs -> castlePermission |= WKCA; break;
-			case 'Q': bs -> castlePermission |= WQCA; break;
-			case 'k': bs -> castlePermission |= BKCA; break;
-			case 'q': bs -> castlePermission |= BQCA; break;
-			default: break;
-		}
-		fen++;
-	}
-	fen++;
-	ASSERT(bs -> castlePermission >= 0 && bs -> castlePermission <= 15);
-
-	// en passant
-	if(*fen != '-'){
-		file = fen[0] - 'a';
-		rank = fen[1] - '0';
-		ASSERT(file >= 0 && file <= 8);
-		ASSERT(rank >= 0 && rank <= 8);
-		bs -> enPas = sq64to120(frToSq64(file, rank));
-	}
-
-	return 0;
-}
-
 void saveMove(int from, int to, int capture){
-	char sqfr[1];
+	char sqfr[2];
 	printf(YEL " == move: " reset);
 	sqName(sqfr, from);
 	printf("from: %s ", sqfr);
@@ -388,13 +302,49 @@ void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 	printBoard(tmpBoard, 0);
 }
 
-int main(){
+int parseArgs(char *inputFEN, int argc, char *argv[]){
+	int c;
+	opterr = 0;
+  while ((c = getopt (argc, argv, "f:")) != -1){
+		switch (c){
+			case 'f':
+				strcpy(inputFEN, optarg);
+				break;
+			case '?':
+				if (optopt == 'f')
+					fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+				else if (isprint(optopt))
+					fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+				else
+					fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+				return 1;
+			default:
+				exit(1);
+		}
+	}
+	return 0;
+}
+
+int main(int argc, char *argv[]){
 	BOARD_STATE bs[1];
 	int moves[27];
+	// must always initialize board!
 	resetBoard(bs);
-	parseFEN(FEN2, bs);
-	printBoard(bs, 0);
+	printf("Checking board initialization...\n");
+	ASSERT(bs -> castlePermission >= 0 && bs -> castlePermission <= 15);
+	// parseFEN(FEN2, bs);
+	// printBoard(bs, 0);
+	// genAllMoves(moves, bs, BLACK);
 
-	genAllMoves(moves, bs, BLACK);
-
+	char inputFEN[99];
+	char outputFEN[99];
+	int ret = parseArgs(inputFEN, argc, argv);
+	// upon success
+	if(ret == 0){
+		parseFEN(inputFEN, bs);
+		printBoard(bs, 0);
+		printf(CYN "inputFEN: %s\n" reset, inputFEN);
+		genFEN(outputFEN, bs);
+		printf(CYN "outputFEN: %s\n" reset, outputFEN);
+	}
 }
