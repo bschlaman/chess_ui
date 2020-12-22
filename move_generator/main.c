@@ -336,6 +336,8 @@ int main(int argc, char *argv[]){
 	char outputFEN[99];
 
 	enum { NORMAL_MODE, FEN_MODE } mode = NORMAL_MODE;
+	// for now, should only have these types
+	ASSERT(argc == 3 || argc == 1);
 	mode = parseArgs(inputFEN, argc, argv);
 	switch(mode){
 		case NORMAL_MODE:
