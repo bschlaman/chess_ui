@@ -31,7 +31,7 @@ enum {
     A8 = 91, B8, C8, D8, E8, F8, G8, H8, NO_SQ
 };
 
-enum { FALSE, TRUE };
+enum { false, true };
 
 // 0 0 0 0
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
@@ -75,7 +75,8 @@ typedef struct {
 char pieceChar[] = ".PNBRQKpnbrqkx";
 // use EMPTY for no piece, and also when there is no enPas square
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, CANDIDATESQ };
-int isPawn[] = {FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE};
+int isPawn[] = {false, true, false, false, false, false, false, true, false, false, false, false, false, false};
+int isKing[] = {false, false, false, false, false, false, true, false, false, false, false, false, true, false};
 int OFFBOARD = -1;
 
 // /* MACROS */

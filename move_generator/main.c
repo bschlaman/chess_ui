@@ -5,9 +5,9 @@
 #include "colors.h"
 
 #define FEN1 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
-#define FEN2 "Q1b1k1r1/2p2p1p/p3q3/1p2p1p1/2P5/b1NB1N2/PP1B1PPP/R3K2R w KQ - 2 15"
-#define FEN3 "1k6/2p5/5p2/3pP3/6Pp/1N6/2K5/8 w - d6 3 3"
-#define FEN4 "3k2Q1/7R/1p1p4/p1p2P2/2P1K3/1P3P2/P7/8 b - b8 12 51"
+#define FEN2 "rnbq2n1/ppp2ppp/5Nk1/1b6/4PPp1/2P5/PP2K1PP/RNBQ1BR1 w KQkq f3 2 15"
+#define FEN3 "1k6/2p5/5p2/3pP3/6Pp/1N6/2K5/8 b - g3 3 3"
+#define FEN4 "3k2Q1/7R/1p1p4/p1p2P2/2P1K3/1P3P2/P7/8 b - c6 12 51"
 
 void resetBoard(BOARD_STATE *bs);
 void printBoard(BOARD_STATE *bs, int options);
@@ -21,6 +21,8 @@ void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 void saveMove(int from, int to, int capture);
 int getType(int piece);
 int getColor(int piece);
+int isCheck(BOARD_STATE *bs, int color);
+int newBoardCheck(int *board, int sq, int cs);
 
 int sq64to120(int sq64){
 	return sq64 + 21 + 2 * (sq64 - sq64 % 8) / 8;
@@ -44,6 +46,7 @@ int getType(int piece){
 	return (piece - 2) % 6;
 }
 
+// TODO: should I make an isOccupied()?
 int getColor(int piece){
 	// black is 7 - 12
 	return piece > 6 && piece < 13;
@@ -144,15 +147,80 @@ void saveMove(int from, int to, int capture){
 }
 
 int genAllMoves(int *moves, BOARD_STATE *bs, int side){
-	int i, piece, sq;
+	int i, piece, sq, total = 0;
 	for(i = 0 ; i < 64 ; i++){
 		sq = sq64to120(i);
 		piece = bs -> board[sq];
 		if(piece != EMPTY && getColor(piece) == side){
 			printf(GRN " == PIECE: %c ==\n" reset, pieceChar[piece]);
-			pieceMoves(moves, bs, piece, sq);
+			total += pieceMoves(moves, bs, piece, sq);
 		}
 	}
+	printf(BLU "total moves in pos: %d\n" reset, total);
+}
+
+// given a color and board, is that side in check?
+// TODO: wow why am I copy pasting my move gen logic
+int isCheck(BOARD_STATE *bs, int color){
+	int i, piece, cs, sq, moves[27];
+	int *board = bs -> board;
+	int numDirections[] = {8, 4, 4, 8, 8};
+	int translation[][8] = {
+		{-21, -12, 8, 19, 21, 12, -8, -19}, // knights 0
+		{-11, 9, 11, -9}, // bishops 1
+		{-10, -1, 10, 1}, // rooks 2
+		{-11, 9, 11, -9, -10, -1, 10, 1}, // queens 3
+		{-11, 9, 11, -9, -10, -1, 10, 1}  // kings 4
+	};
+
+	for(i = 0 ; i < 64 ; i++){
+		sq = sq64to120(i);
+		piece = bs -> board[sq64to120(i)];	
+		if(piece != EMPTY && getColor(piece) != color){
+
+			// pieces
+			if(!isPawn[piece]){
+				int d, type = getType(piece);
+				for(d = 0 ; d < numDirections[type] ; d++){
+					cs = sq;
+					while(board[cs += translation[type][d]] != OFFBOARD){
+						// if the piece is the king of opposite color
+						// if not empty, either break or its the king
+						if(board[cs] != EMPTY){
+							if(getColor(board[cs]) == color && isKing[board[cs]]){
+								return true;
+							}
+							else { break; }
+						}
+						if(type == 0 || type == 4){ break; }
+					}
+				}
+			} else {
+				// pawns
+				cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
+				if(board[cs] != OFFBOARD && getColor(board[cs]) == color && isKing[board[cs]]){
+					return true;
+				}
+				cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
+				if(board[cs] != OFFBOARD && getColor(board[cs]) == color && isKing[board[cs]]){
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+int newBoardCheck(int *board, int sq, int cs){
+	// TODO: a bit clunky passing in a board and then passing a BOARD_STATE to isCheck()
+	BOARD_STATE tbs[1];
+	resetBoard(tbs);
+	for(int i = 0 ; i < 120 ; i++){
+		tbs -> board[i] = board[i];
+	}
+	tbs -> board[sq] = EMPTY;
+	tbs -> board[cs] = board[sq];
+	return isCheck(tbs, getColor(board[sq]));
 }
 
 int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
@@ -160,7 +228,11 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 	// and move in particular "directions"
 	// until the piece is OFFBOARD
 	// cs = candidate square
-	int i = 0, cs = sq, enPasCaptureFromSq = OFFBOARD;
+	// note that newBoardCheck() is called every time there is a new cs
+	// This means that I check it prematurely in some cases
+	// but it's cleaner for now
+	// TODO: should I get color from the BOARD_STATE?
+	int i = 0, cs = sq, enPasCaptureFromSq = OFFBOARD, total = 0;
 	int *board = bs -> board;
 
 	int numDirections[] = {8, 4, 4, 8, 8};
@@ -178,11 +250,7 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 	}
 	i = 0;
 	// TODO: is there a better way to check for invalid index?
-	if(sq < 0 || sq > 120 || board[sq] == OFFBOARD){
-		// TODO: get rid of this
-		printf(RED "ERROR: invalid square\n" reset);
-		return -1;
-	}
+	ASSERT(sq >= 0 && sq <= 120 && board[sq] != OFFBOARD);
 
 	// a better move generation
 	if(!isPawn[piece]){
@@ -193,61 +261,59 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 			cs = sq;
 			// while sq not offboard
 			while(board[cs += translation[type][d]] != OFFBOARD){
-				// printf(BLU "cs: %d\n" reset, cs);
-				if(board[cs] == EMPTY){
-					saveMove(sq, cs, 0);  moves[i] = cs; i++;
-				} else {
-					if(getColor(piece) != getColor(board[cs])){ saveMove(sq, cs, 1); moves[i] = cs; i++;}
-					break;
+				if(!newBoardCheck(board, sq, cs)){
+					if(board[cs] == EMPTY){
+						saveMove(sq, cs, 0);  moves[i] = cs; i++; total++;
+					} else {
+						if(getColor(piece) != getColor(board[cs])){ saveMove(sq, cs, 1); moves[i] = cs; i++; total++ ; }
+						break;
+					}
 				}
 				// stop if piece is a knight or king
 				if(type == 0 || type == 4){ break; }
 			}
 		}
-		return 0;
 	} else {
 		// pawns
 
 		// forward 1
 		// mapping {0,1} -> {-1,1} -> {-10,10}
 		cs = sq - (1 - 2 * getColor(piece)) * 10;
-		if(board[cs] == EMPTY){ saveMove(sq, cs, 0);  moves[i] = cs; i++; }
+		if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){ saveMove(sq, cs, 0);  moves[i] = cs; i++; total++; }
 		// forward 2
 		if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
 			cs = sq - (1 - 2 * getColor(piece)) * 20;
-			if(board[cs] == EMPTY){
+			if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){
 				// TODO: set enPas, although that would probably be in a different function
-				saveMove(sq, cs, 0);  moves[i] = cs; i++;
+				saveMove(sq, cs, 0);  moves[i] = cs; i++; total++;
 			}
 		}
 
 		// captures
 		cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
-		if(board[cs] != EMPTY && board[cs] != OFFBOARD){
-			saveMove(sq, cs, 1);  moves[i] = cs; i++;
+		if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
+			saveMove(sq, cs, 1);  moves[i] = cs; i++; total++;
 		}
 		cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
-		if(board[cs] != EMPTY && board[cs] != OFFBOARD){
-			saveMove(sq, cs, 1);  moves[i] = cs; i++;
+		if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
+			saveMove(sq, cs, 1);  moves[i] = cs; i++; total++;
 		}
 		// enPas
 		cs = bs -> enPas;
-		if(cs != EMPTY){
-			printf(GRN "\ncs: %d\n" reset, cs);
-			ASSERT((cs <= 78 && cs >=71) || (cs <= 48 && cs >= 41));
+		if(cs != EMPTY && !newBoardCheck(board, sq, cs)){
+			ASSERT((cs <= 78 && cs >= 71) || (cs <= 48 && cs >= 41));
 			// enPasCaptureFromSq is the same as what it would look like to captrue TO that sq
-			enPasCaptureFromSq = cs - (1 - 2 * getColor(piece)) * 10 + 1;
+			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 + 1;
 			if(sq == enPasCaptureFromSq){
-				saveMove(sq, cs, 1);  moves[i] = cs; i++;
+				saveMove(sq, cs, 1);  moves[i] = cs; i++; total++;
 			}
-			enPasCaptureFromSq = cs - (1 - 2 * getColor(piece)) * 10 - 1;
+			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 - 1;
 			if(sq == enPasCaptureFromSq){
-				saveMove(sq, cs, 1);  moves[i] = cs; i++;
+				saveMove(sq, cs, 1);  moves[i] = cs; i++; total++;
 			}
 		}
-
 	}
-	return -1;
+	return total;
 }
 
 void resetBoard(BOARD_STATE *bs){
@@ -298,12 +364,11 @@ void printBoard(BOARD_STATE *bs, int option){
 
 	printf(BLU "side to move: %s\n" reset, bs -> side == WHITE ? "white" : "black");
 	char sqfr[1];
-	sqName(sqfr, sq64to120(bs -> enPas));
+	sqName(sqfr, bs -> enPas);
 	printf(BLU "enPas namesquare: %s\n" reset, sqfr);
-	printf(BLU "enPas 64square: %d\n" reset, bs -> enPas);
-	printf(BLU "rank: %d\n" reset, rank);
-	printf(BLU "file: %d\n" reset, file);
-
+	printf(BLU "enPas 120square: %d\n" reset, bs -> enPas);
+	printf(BLU "WisCheck: %s\n" reset, isCheck(bs, WHITE) ? "true" : "false");
+	printf(BLU "BisCheck: %s\n" reset, isCheck(bs, BLACK) ? "true" : "false");
 
 }
 
@@ -327,9 +392,9 @@ int main(){
 	BOARD_STATE bs[1];
 	int moves[27];
 	resetBoard(bs);
-	parseFEN(FEN3, bs);
+	parseFEN(FEN2, bs);
 	printBoard(bs, 0);
 
-	genAllMoves(moves, bs, WHITE);
+	genAllMoves(moves, bs, BLACK);
 
 }
