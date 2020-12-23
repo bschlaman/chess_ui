@@ -102,7 +102,7 @@ int genRandomMove(BOARD_STATE *bs){
 		// printf(CYN "legalMoves[%d]: %s -> %s\n" reset, m, sqfrFrom, sqfrTo);
 	}
 	srand(time(0));
-	int r = rand() % (28 - 0 + 1) + 0;
+	int r = rand() % total;
 	makeMove(bs, legalMoves[r][0], legalMoves[r][1]);
 	return r;
 }
@@ -403,9 +403,11 @@ int main(int argc, char *argv[]){
 	// TODO: put this inside the switch block
 	// NORMAL_MODE
 	if(mode == 0){
-		parseFEN(FEN2, bs);
+		char tmp[] = "8/PBk2r2/2R5/P5p1/P3NpPP/1b1PP3/6R1/2B2KN1 w KQkq -";
+		// char tmp[] = "rnk5/4bq2/p1n4r/Pp1PppNP/1P6/B1PP4/R2K1P1R/1N1B4 b KQkq -";
+		parseFEN(tmp, bs);
 		printBoard(bs, 0);
-		printAllMoves(moves, bs, WHITE);
+		printAllMoves(moves, bs, BLACK);
 	}
 	// FEN_MODE
 	if(mode == 1){
