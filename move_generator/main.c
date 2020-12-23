@@ -53,6 +53,15 @@ int getColor(int piece){
 void makeMove(BOARD_STATE *bs, int from, int to){
 	bs -> board[to] = bs -> board[from];
 	bs -> board[from] = EMPTY;
+	// TODO: obviously move this somewhere else
+	int sq = sq120to64(to);
+	if(isPawn[bs -> board[to]] && ((sq>=0&&sq<=7)||(sq>=56&&sq<=63))){
+		if(getColor(bs -> board[to])){
+			bs -> board[to] = bQ;
+		} else {
+			bs -> board[to] = wQ;
+		}
+	}
 }
 
 void saveMove(int from, int to, int capture){
