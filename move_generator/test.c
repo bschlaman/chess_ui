@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>	
+#include <time.h>
 #include "colors.h"
 
 int genFEN(char *fen){
@@ -48,14 +49,9 @@ int main(int argc, char *argv[]){
 
 	char inputFEN[99];
 	int ret = parseArgs(inputFEN, argc, argv);
-
 	
-	int i;
-	for(i = 1 ; i <= 8 ; i = i << 1){
-		printf(CYN "i: %d\n" reset, i);
-		// if(i & bs -> castlePermission){
-		// 	fen[f] = castleChar[i ];
-		// }
-	}
+	srand(time(0));
+	int r = rand() % (7 - 3 + 1) + 3;
+	printf(CYN "rand(): %d" reset, r);
 
 }

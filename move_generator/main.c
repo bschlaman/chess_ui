@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>	
+#include <time.h>
 #include "defs.h"
 #include "colors.h"
 
@@ -10,9 +11,11 @@
 void resetBoard(BOARD_STATE *bs);
 void printBoard(BOARD_STATE *bs, int options);
 int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
-int genAllMoves(int *moves, BOARD_STATE *bs, int side);
+int genRandomMove(BOARD_STATE *bs);
+int printAllMoves(int *moves, BOARD_STATE *bs, int side);
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 void saveMove(int from, int to, int capture);
+void makeMove(BOARD_STATE *bs, int from, int to);
 int getType(int piece);
 int getColor(int piece);
 int isCheck(BOARD_STATE *bs, int color);
@@ -46,17 +49,65 @@ int getColor(int piece){
 	return piece > 6 && piece < 13;
 }
 
-void saveMove(int from, int to, int capture){
-	char sqfr[2];
-	printf(YEL " == move: " reset);
-	sqName(sqfr, from);
-	printf("from: %s ", sqfr);
-	sqName(sqfr, to);
-	printf("to: %s ", sqfr);
-	printf("capture: %s\n", capture ? "yes" : "no");
+void makeMove(BOARD_STATE *bs, int from, int to){
+	bs -> board[to] = bs -> board[from];
+	bs -> board[from] = EMPTY;
 }
 
-int genAllMoves(int *moves, BOARD_STATE *bs, int side){
+void saveMove(int from, int to, int capture){
+	// TODO: remove this, temporary workaround
+	// extern int[1000][3] legalMoves;
+	for(int m  = 0 ; m < 1000 ; m++){
+		if(legalMoves[m][2] == -1){
+			legalMoves[m][0] = from;		
+			legalMoves[m][1] = to;		
+			legalMoves[m][2] = capture;		
+			break;
+		}
+	}
+
+	// char sqfr[2];
+	// printf(YEL " == move: " reset);
+	// sqName(sqfr, from);
+	// printf("from: %s ", sqfr);
+	// sqName(sqfr, to);
+	// printf("to: %s ", sqfr);
+	// printf("capture: %s\n", capture ? "yes" : "no");
+}
+
+int genRandomMove(BOARD_STATE *bs){
+	// TODO: remove this, temporary workaround
+	// extern int[1000][3] legalMoves;
+	for(int m  = 0 ; m < 1000 ; m++){
+		legalMoves[m][2] = -1;
+	}
+
+	int moves[27];
+
+	int i, piece, sq, total = 0, side;
+	for(i = 0 ; i < 64 ; i++){
+		sq = sq64to120(i);
+		piece = bs -> board[sq];
+		side = bs -> side;
+		if(piece != EMPTY && getColor(piece) == side){
+			total += pieceMoves(moves, bs, piece, sq);
+		}
+	}
+
+	char sqfrFrom[2];
+	char sqfrTo[2];
+	for(int m  = 0 ; m < total ; m++){
+		sqName(sqfrFrom, legalMoves[m][0]);
+		sqName(sqfrTo, legalMoves[m][1]);
+		// printf(CYN "legalMoves[%d]: %s -> %s\n" reset, m, sqfrFrom, sqfrTo);
+	}
+	srand(time(0));
+	int r = rand() % (28 - 0 + 1) + 0;
+	makeMove(bs, legalMoves[r][0], legalMoves[r][1]);
+	return r;
+}
+
+int printAllMoves(int *moves, BOARD_STATE *bs, int side){
 	int i, piece, sq, total = 0;
 	for(i = 0 ; i < 64 ; i++){
 		sq = sq64to120(i);
@@ -273,7 +324,7 @@ void printBoard(BOARD_STATE *bs, int option){
 	printf("\n");
 
 	printf(BLU "side to move: %s\n" reset, bs -> side == WHITE ? "white" : "black");
-	char sqfr[1];
+	char sqfr[2];
 	sqName(sqfr, bs -> enPas);
 	printf(BLU "enPas namesquare: %s\n" reset, sqfr);
 	printf(BLU "enPas 120square: %d\n" reset, bs -> enPas);
@@ -354,14 +405,17 @@ int main(int argc, char *argv[]){
 	if(mode == 0){
 		parseFEN(FEN2, bs);
 		printBoard(bs, 0);
-		genAllMoves(moves, bs, WHITE);
+		printAllMoves(moves, bs, WHITE);
 	}
 	// FEN_MODE
 	if(mode == 1){
 		parseFEN(inputFEN, bs);
-		printBoard(bs, 0);
+		// printBoard(bs, 0);
+		// genFEN(outputFEN, bs);
+		// printf(CYN "inputFEN: %s\n" reset, inputFEN);
+		// printf(CYN "outputFEN: %s\n" reset, outputFEN);
+		genRandomMove(bs);
 		genFEN(outputFEN, bs);
-		printf(CYN "inputFEN: %s\n" reset, inputFEN);
 		printf(CYN "outputFEN: %s\n" reset, outputFEN);
 	}
 }

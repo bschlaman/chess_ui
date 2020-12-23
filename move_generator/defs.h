@@ -83,6 +83,8 @@ extern const char castleChar[];
 extern const int isPawn[];
 extern const int isKing[];
 extern const int OFFBOARD;
+// TODO: remove this, temporary workaround
+extern int legalMoves[1000][3];
 /* FUNCTIONS */
 // fen.c
 extern int parseFEN(char *fen, BOARD_STATE *bs);
