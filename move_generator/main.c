@@ -414,8 +414,9 @@ int main(int argc, char *argv[]){
 		// genFEN(outputFEN, bs);
 		// printf(CYN "inputFEN: %s\n" reset, inputFEN);
 		// printf(CYN "outputFEN: %s\n" reset, outputFEN);
-		genRandomMove(bs);
+		int r = genRandomMove(bs);
 		genFEN(outputFEN, bs);
+		printf(CYN "randMove: %d\n" reset, r);
 		printf(CYN "outputFEN: %s\n" reset, outputFEN);
 	}
 }
