@@ -386,8 +386,6 @@ int main(int argc, char *argv[]){
 	int moves[27];
 	// must always initialize board!
 	resetBoard(bs);
-	printf("Checking board initialization...\n");
-	ASSERT(bs -> castlePermission == 0);
 
 	char inputFEN[99];
 	char outputFEN[99];
@@ -409,6 +407,8 @@ int main(int argc, char *argv[]){
 	// TODO: put this inside the switch block
 	// NORMAL_MODE
 	if(mode == 0){
+		printf("Checking board initialization...\n");
+		ASSERT(bs -> castlePermission == 0);
 		char tmp[] = "8/PBk2r2/2R5/P5p1/P3NpPP/1b1PP3/6R1/2B2KN1 w KQkq -";
 		// char tmp[] = "rnk5/4bq2/p1n4r/Pp1PppNP/1P6/B1PP4/R2K1P1R/1N1B4 b KQkq -";
 		parseFEN(tmp, bs);
@@ -422,7 +422,6 @@ int main(int argc, char *argv[]){
 		// genFEN(outputFEN, bs);
 		// printf(CYN "inputFEN: %s\n" reset, inputFEN);
 		// printf(CYN "outputFEN: %s\n" reset, outputFEN);
-		printf(RED "0: %d\n", sq120to64(0));
 		int r = genRandomMove(bs);
 		genFEN(outputFEN, bs);
 		printf("%s\n", outputFEN);
