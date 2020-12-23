@@ -53,5 +53,6 @@ int main(int argc, char *argv[]){
 	srand(time(0));
 	int r = rand() % (7 - 3 + 1) + 3;
 	printf(CYN "rand(): %d" reset, r);
+	printf(CYN "rand(): %d" reset, 5%0);
 
 }

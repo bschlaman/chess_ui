@@ -35,7 +35,8 @@ int frToSq64(int file, int rank){
 
 void sqName(char *sqfr, int sq120){
 	int sq64 = sq120to64(sq120);
-	char sqstr[] = {(sq64 % 8) + 'a', '8' - ((sq64 - sq64 % 8) / 8), '\0'};
+	char sqstr[] = {(sq64 % 8) + 'a', '8' - ((sq64 - sq64 % 8) / 8), '\0'};;
+	if(sq120 == 0){ char *p = sqstr; *p++ = '-' ; *p++ = '\0'; }
 	strcpy(sqfr, sqstr);
 }
 
@@ -101,10 +102,15 @@ int genRandomMove(BOARD_STATE *bs){
 		sqName(sqfrTo, legalMoves[m][1]);
 		// printf(CYN "legalMoves[%d]: %s -> %s\n" reset, m, sqfrFrom, sqfrTo);
 	}
-	srand(time(0));
-	int r = rand() % total;
-	makeMove(bs, legalMoves[r][0], legalMoves[r][1]);
-	return r;
+	
+	if(total > 0){
+		srand(time(0));
+		int r = rand() % total;
+		makeMove(bs, legalMoves[r][0], legalMoves[r][1]);
+		return r;
+	} else {
+		return -1;
+	}
 }
 
 int printAllMoves(int *moves, BOARD_STATE *bs, int side){
@@ -416,11 +422,9 @@ int main(int argc, char *argv[]){
 		// genFEN(outputFEN, bs);
 		// printf(CYN "inputFEN: %s\n" reset, inputFEN);
 		// printf(CYN "outputFEN: %s\n" reset, outputFEN);
+		printf(RED "0: %d\n", sq120to64(0));
 		int r = genRandomMove(bs);
 		genFEN(outputFEN, bs);
-		printf(CYN "randMove: %d\n" reset, r);
-		printf(CYN "outputFEN: %s\n" reset, outputFEN);
-		printf("-\n", outputFEN);
 		printf("%s\n", outputFEN);
 	}
 }
