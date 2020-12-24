@@ -20,6 +20,8 @@ int getType(int piece);
 int getColor(int piece);
 int isCheck(BOARD_STATE *bs, int color);
 int newBoardCheck(int *board, int sq, int cs);
+// TODO: somehow there's an issue with the global var
+int mode;
 
 int sq64to120(int sq64){
 	return sq64 + 21 + 2 * (sq64 - sq64 % 8) / 8;
@@ -53,6 +55,8 @@ int getColor(int piece){
 void makeMove(BOARD_STATE *bs, int from, int to){
 	bs -> board[to] = bs -> board[from];
 	bs -> board[from] = EMPTY;
+
+	// promotion
 	// TODO: obviously move this somewhere else
 	int sq = sq120to64(to);
 	if(isPawn[bs -> board[to]] && ((sq>=0&&sq<=7)||(sq>=56&&sq<=63))){
@@ -62,6 +66,9 @@ void makeMove(BOARD_STATE *bs, int from, int to){
 			bs -> board[to] = wQ;
 		}
 	}
+
+	// castling
+	if(
 }
 
 void saveMove(int from, int to, int capture){
@@ -83,6 +90,8 @@ void saveMove(int from, int to, int capture){
 	// sqName(sqfr, to);
 	// printf("to: %s ", sqfr);
 	// printf("capture: %s\n", capture ? "yes" : "no");
+
+	printf(CYN "mode: %d\n", mode);
 }
 
 int genRandomMove(BOARD_STATE *bs){
@@ -289,6 +298,27 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 			}
 		}
 	}
+	// castling
+	int cp = bs -> castlePermission;
+	if(piece == wK){
+		ASSERT(sq == 95);
+		// if cp exists, not in check and not thru check and not thru piece
+		if(cp & WKCA && !newBoardCheck(board, sq, sq) && !newBoardCheck(board, sq, sq+1) && !newBoardCheck(board, sq, sq+2)){
+			saveMove(sq, sq + 2, 0);
+		}
+		if(cp & WQCA && !newBoardCheck(board, sq, sq) && !newBoardCheck(board, sq, sq-1) && !newBoardCheck(board, sq, sq-2)){
+			saveMove(sq, sq - 2, 0);
+		}
+	}
+	if(piece == wK){
+		ASSERT(sq == 25);
+		if(cp & BKCA && !newBoardCheck(board, sq, sq) && !newBoardCheck(board, sq, sq+1) && !newBoardCheck(board, sq, sq+2)){
+			saveMove(sq, sq + 2, 0);
+		}
+		if(cp & BQCA && !newBoardCheck(board, sq, sq) && !newBoardCheck(board, sq, sq-1) && !newBoardCheck(board, sq, sq-2)){
+			saveMove(sq, sq - 2, 0);
+		}
+	}
 	return total;
 }
 
@@ -413,6 +443,7 @@ int main(int argc, char *argv[]){
 			break;
 	}
 
+	printf(YEL "mode: %d\n" reset, mode);
 	// TODO: put this inside the switch block
 	// NORMAL_MODE
 	if(mode == 0){
