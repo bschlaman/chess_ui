@@ -130,7 +130,7 @@ int genFEN(char *fen, BOARD_STATE *bs){
 	} else {
 		ASSERT(bs -> castlePermission >= 0 && bs -> castlePermission <= 15);
 		for(i = 0 ; i < 4 ; i++){
-			if(1 << i & bs -> castlePermission){
+			if(1 << (3 - i) & bs -> castlePermission){
 				fen[f] = castleChar[i];
 				f++;
 			}
