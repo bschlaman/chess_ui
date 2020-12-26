@@ -3,7 +3,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>	
-#include <time.h>
 #include "defs.h"
 #include "colors.h"
 
@@ -174,7 +173,6 @@ int genRandomMove(BOARD_STATE *bs){
 	// }
 	
 	if(total > 0){
-		srand(time(0));
 		int r = rand() % total;
 		// TMP: testing castling
 		// while(legalMoves[r][0] != 56 && legalMoves[r][0] != 87){ // && legalMoves[r][0] != 25){
@@ -497,6 +495,7 @@ int parseArgs(char *inputFEN, int argc, char *argv[]){
 }
 
 int main(int argc, char *argv[]){
+	initRand();
 	BOARD_STATE bs[1];
 	int moves[27];
 	// must always initialize board!
@@ -531,6 +530,11 @@ int main(int argc, char *argv[]){
 		parseFEN(tmp, bs);
 		printBoard(bs, 0);
 		printAllMoves(moves, bs);
+			
+		char c;
+		while((c = getchar()) != 'q'){
+			printf("%d ", rand() % 3);
+		}
 	}
 	// FEN_MODE
 	if(mode == 1){

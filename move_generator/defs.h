@@ -94,3 +94,5 @@ extern int sq64to120(int sq64);
 extern int sq120to64(int sq120);
 extern int frToSq64(int file, int rank);
 extern void sqName(char *sqfr, int sq120);
+// init.c
+extern void initRand();
