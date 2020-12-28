@@ -140,7 +140,7 @@ int genFEN(char *fen, BOARD_STATE *bs){
 	
 	// en passant
 	char sqfr[2];
-	sqName(sqfr, bs -> enPas);
+	getAlgebraic(sqfr, bs -> enPas);
 	fen[f + 1] = sqfr[0];
 	fen[f + 2] = sqfr[1];
 	fen[f + 3] = '\0';

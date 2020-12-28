@@ -6,18 +6,6 @@
 #include <time.h>
 #include "colors.h"
 
-int genFEN(char *fen){
-	int i, f;
-	for(i = 0, f=0 ; i < 64 ; i++){
-		if(i % 3 == 0){
-			fen[f] = '3';
-			f++;
-		}
-	}
-	fen[f] = '\0';
-	return 0;
-}
-
 int parseArgs(char *inputFEN, int argc, char *argv[]){
 	int c;
 	opterr = 0;
@@ -42,6 +30,8 @@ int parseArgs(char *inputFEN, int argc, char *argv[]){
 }
 
 int randInt(int lb, int ub){
+	time_t t;
+	srand((unsigned) time(&t));
 	return rand() % (ub - lb + 1) + lb;
 }
 
@@ -61,23 +51,23 @@ struct node* newNode(int data){
 	return n;
 }
 
-int main(int argc, char *argv[]){
-	time_t t;
-	srand((unsigned) time(&t));
-
-	char arr[100];
-	char *ptr = arr; //same as char *ptr = &arr[0]
-
-	char inputFEN[99];
-	int ret = parseArgs(inputFEN, argc, argv);
-
+void nodeTest(){
 	struct node *n = newNode(34143143);
 	printf(YEL "n->data: %d\n" reset, n -> data);
+}
 
-	char c;
-	while((c = getchar()) != 'q'){
-		printf("%d ", time(0));
-		printf("%d ", randInt(0,3));
-	}
+int mode = 4;
+void testMode(){
+	printf(CYN "mode: %d\n" reset, mode);
+}
+
+int main(int argc, char *argv[]){
+	// arg stuff
+	char inputFEN[99];
+	int res = parseArgs(inputFEN, argc, argv);
+
+	mode = 5;
+	testMode();
+	// testing globals
 	return 0;
 }

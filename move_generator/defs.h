@@ -37,7 +37,7 @@ enum {
 
 // 0 0 0 0
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
-enum { WHITE, BLACK, BOTH };
+enum { WHITE, BLACK, NEITHER };
 // use EMPTY for no piece, and also when there is no enPas square
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, CANDIDATESQ };
 
@@ -74,10 +74,14 @@ typedef struct {
 
 } BOARD_STATE;
 
-
+// global mode
+enum { NORMAL_MODE, FEN_MODE };
+// printBoard opts
+enum { OPT_64_BOARD, OPT_BOARD_STATE, OPT_120_BOARD };
 
 /* MACROS */
 /* GLOBALS */
+extern int mode;
 extern const char pieceChar[];
 extern const char castleChar[];
 extern const int isPawn[];
@@ -93,6 +97,8 @@ extern int genFEN(char *fen, BOARD_STATE *bs);
 extern int sq64to120(int sq64);
 extern int sq120to64(int sq120);
 extern int frToSq64(int file, int rank);
-extern void sqName(char *sqfr, int sq120);
+extern void getAlgebraic(char *sqfr, int sq120);
+extern void resetBoard(BOARD_STATE *bs);
 // init.c
 extern void initRand();
+extern BOARD_STATE* initGame();

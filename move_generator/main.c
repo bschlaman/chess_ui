@@ -7,11 +7,10 @@
 #include "colors.h"
 
 
-void resetBoard(BOARD_STATE *bs);
 void printBoard(BOARD_STATE *bs, int options);
 int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 int genRandomMove(BOARD_STATE *bs);
-int printAllMoves(int *moves, BOARD_STATE *bs);
+int printAllMoves(BOARD_STATE *bs);
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 void saveMove(int from, int to, int capture);
 void makeMove(BOARD_STATE *bs, int from, int to);
@@ -20,7 +19,6 @@ int getColor(int piece);
 int isCheck(BOARD_STATE *bs, int color);
 int newBoardCheck(int *board, int sq, int cs);
 // TODO: somehow there's an issue with the global var
-int mode;
 
 int sq64to120(int sq64){
 	return sq64 + 21 + 2 * (sq64 - sq64 % 8) / 8;
@@ -34,11 +32,11 @@ int frToSq64(int file, int rank){
 	return (8 - rank) * 8 + file;
 }
 
-void sqName(char *sqfr, int sq120){
+void getAlgebraic(char *sqStrPtr, int sq120){
 	int sq64 = sq120to64(sq120);
-	char sqstr[] = {(sq64 % 8) + 'a', '8' - ((sq64 - sq64 % 8) / 8), '\0'};;
-	if(sq120 == 0){ char *p = sqstr; *p++ = '-' ; *p++ = '\0'; }
-	strcpy(sqfr, sqstr);
+	char sqAN[] = {(sq64 % 8) + 'a', '8' - ((sq64 - sq64 % 8) / 8), '\0'};;
+	if(sq120 == OFFBOARD){ char *p = sqAN; *p++ = '-' ; *p++ = '\0'; }
+	strcpy(sqStrPtr, sqAN);
 }
 
 int getType(int piece){
@@ -115,7 +113,7 @@ void makeMove(BOARD_STATE *bs, int from, int to){
 	if(isPawn[piece] && abs(to - from) == 20){
 		bs -> enPas = to + (1 - 2 * getColor(piece)) * 10;
 	} else {
-		bs -> enPas = EMPTY;
+		bs -> enPas = OFFBOARD;
 	}
 }
 
@@ -131,15 +129,15 @@ void saveMove(int from, int to, int capture){
 		}
 	}
 
-	char sqfr[2];
-	// printf(YEL " == move: " reset);
-	// sqName(sqfr, from);
-	// printf("from: %s ", sqfr);
-	// sqName(sqfr, to);
-	// printf("to: %s ", sqfr);
-	// printf("capture: %s\n", capture ? "yes" : "no");
-
-	// printf(CYN "mode: %d\n", mode);
+	if(mode == NORMAL_MODE){
+		char sqfr[2];
+		printf(YEL "      move: " reset);
+		getAlgebraic(sqfr, from);
+		printf("from: %s ", sqfr);
+		getAlgebraic(sqfr, to);
+		printf("to: %s ", sqfr);
+		printf("capture: %s\n", capture ? "yes" : "no");
+	}
 }
 
 int genRandomMove(BOARD_STATE *bs){
@@ -165,8 +163,8 @@ int genRandomMove(BOARD_STATE *bs){
 	// char sqfrFrom[2];
 	// char sqfrTo[2];
 	// for(int m  = 0 ; m < total ; m++){
-	// 	sqName(sqfrFrom, legalMoves[m][0]);
-	// 	sqName(sqfrTo, legalMoves[m][1]);
+	// 	getAlgebraic(sqfrFrom, legalMoves[m][0]);
+	// 	getAlgebraic(sqfrTo, legalMoves[m][1]);
 	// 	if(legalMoves[m][0] == 95 || legalMoves[m][0] == 25){
 	// 		printf(CYN "legalMoves[%d]: %s -> %s\n" reset, m, sqfrFrom, sqfrTo);
 	// 	}
@@ -186,18 +184,19 @@ int genRandomMove(BOARD_STATE *bs){
 	}
 }
 
-int printAllMoves(int *moves, BOARD_STATE *bs){
+int printAllMoves(BOARD_STATE *bs){
 	int i, piece, sq, total = 0;
+	int moves[27];
 	int side = bs -> side;
 	for(i = 0 ; i < 64 ; i++){
 		sq = sq64to120(i);
 		piece = bs -> board[sq];
 		if(piece != EMPTY && getColor(piece) == side){
-			printf(GRN " == PIECE: %c ==\n" reset, pieceChar[piece]);
+			printf(GRN " == PIECE: %c\n" reset, pieceChar[piece]);
 			total += pieceMoves(moves, bs, piece, sq);
 		}
 	}
-	printf(BLU "total moves in pos: %d\n" reset, total);
+	printf(BLU "total moves in pos: " reset "%d\n", total);
 }
 
 // given a color and board, is that side in check?
@@ -250,6 +249,10 @@ int isCheck(BOARD_STATE *bs, int color){
 		}
 	}
 	return false;
+}
+
+int enPasCorrectColor(int enPas, int side){
+	return enPas - 40 - 30 * side >= 1 && enPas - 40 - 30 * side <= 8;
 }
 
 int newBoardCheck(int *board, int sq, int cs){
@@ -341,14 +344,16 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 		// enPas
 		cs = bs -> enPas;
 		if(cs != EMPTY && !newBoardCheck(board, sq, cs)){
-			ASSERT((cs <= 78 && cs >= 71) || (cs <= 48 && cs >= 41));
+			// ASSERT((cs <= 78 && cs >= 71) || (cs <= 48 && cs >= 41));
+			// printf(CYN "assrt: %d\n" reset, cs - 40 - 30 * getColor(piece));
+			// ASSERT(cs - 40 - 30 * getColor(piece) >= 1 && cs - 40 - 30 * getColor(piece) <= 8);
 			// enPasCaptureFromSq is the same as what it would look like to captrue TO that sq
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 + 1;
-			if(sq == enPasCaptureFromSq){
+			if(sq == enPasCaptureFromSq && enPasCorrectColor(cs, getColor(piece))){
 				saveMove(sq, cs, 1); moves[i] = cs; i++; total++;
 			}
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 - 1;
-			if(sq == enPasCaptureFromSq){
+			if(sq == enPasCaptureFromSq && enPasCorrectColor(cs, getColor(piece))){
 				saveMove(sq, cs, 1); moves[i] = cs; i++; total++;
 			}
 		}
@@ -405,18 +410,16 @@ void resetBoard(BOARD_STATE *bs){
 	for(i = 0 ; i < 64 ; i++){
 		bs -> board[sq64to120(i)] = EMPTY;
 	}
-	bs -> side = BOTH;
+	bs -> side = NEITHER;
 	bs -> castlePermission = 0;
-	// TODO: make sure these are always 120sq
-	// because EMPTY = 0
-	bs -> enPas = EMPTY;
+	bs -> enPas = OFFBOARD;
 }
 
 void printBoard(BOARD_STATE *bs, int option){
 	int i, rank, file, piece, sq64;
 
-	if(option == 1){
-		printf(BLU "\n120 Board:\n\n" reset);
+	if(option == OPT_120_BOARD){
+		printf(YEL " ---- 120 Board ---- \n" reset);
 		for(i = 0 ; i < 120 ; i++){
 			printf("%2d ", bs -> board[i]);
 			if((i + 1) % 10 == 0){
@@ -426,30 +429,32 @@ void printBoard(BOARD_STATE *bs, int option){
 		printf("\n");
 	}
 
-  printf(YEL "\nGame Board:\n\n" reset);
-	for(rank = 8 ; rank > 0 ; rank--){
-		printf("%d ", rank);
+	if(option == OPT_64_BOARD){
+		printf(YEL " ---- Game Board ---- \n" reset);
+		for(rank = 8 ; rank > 0 ; rank--){
+			printf("%d ", rank);
+			for(file = 0 ; file < 8 ; file++){
+				piece = bs -> board[sq64to120(frToSq64(file, rank))];
+				printf("%2c", pieceChar[piece]);
+			}
+			printf("\n");
+		}
+		// print the files
+		printf("\n  ");
 		for(file = 0 ; file < 8 ; file++){
-			piece = bs -> board[sq64to120(frToSq64(file, rank))];
-			printf("%2c", pieceChar[piece]);
+			printf(RED "%2c" reset, file + 'a');
 		}
 		printf("\n");
 	}
-	// print the files
-	printf("\n  ");
-	for(file = 0 ; file < 8 ; file++){
-		printf(RED "%2c" reset, file + 'a');
+
+	if(option == OPT_BOARD_STATE){
+		printf(BLU "side to move: " reset "%s\n", bs -> side == WHITE ? "white" : "black");
+		char sqAN[2];
+		getAlgebraic(sqAN, bs -> enPas);
+		printf(BLU "en passant sq: " reset "%s\n", sqAN);
+		printf(BLU "white in check: " reset "%s\n", isCheck(bs, WHITE) ? "true" : "false");
+		printf(BLU "black in check: " reset "%s\n", isCheck(bs, BLACK) ? "true" : "false");
 	}
-	printf("\n");
-
-	printf(BLU "side to move: %s\n" reset, bs -> side == WHITE ? "white" : "black");
-	char sqfr[2];
-	sqName(sqfr, bs -> enPas);
-	printf(BLU "enPas namesquare: %s\n" reset, sqfr);
-	printf(BLU "enPas 120square: %d\n" reset, bs -> enPas);
-	printf(BLU "WisCheck: %s\n" reset, isCheck(bs, WHITE) ? "true" : "false");
-	printf(BLU "BisCheck: %s\n" reset, isCheck(bs, BLACK) ? "true" : "false");
-
 }
 
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
@@ -470,43 +475,38 @@ void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 
 int parseArgs(char *inputFEN, int argc, char *argv[]){
 	int c;
-	opterr = 0;
-  while ((c = getopt (argc, argv, "f:")) != -1){
-		switch (c){
+  while((c = getopt(argc, argv, "f:")) != -1){
+		switch(c){
 			case 'f':
 				strcpy(inputFEN, optarg);
 				// TODO: this is clunky, need a better way to check this
-				return 1;
+				return FEN_MODE;
 				break;
 			case '?':
-				if (optopt == 'f')
+				if(optopt == 'f')
 					fprintf(stderr, "Option -%c requires an argument.\n", optopt);
-				else if (isprint(optopt))
+				else if(isprint(optopt))
 					fprintf(stderr, "Unknown option `-%c'.\n", optopt);
 				else
 					fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
 				return -1;
 			default:
+				fprintf(stderr, "Error with arg parsing", optopt);
 				exit(1);
 		}
 	}
 	// default to NORMAL_MODE
-	return 0;
+	return NORMAL_MODE;
 }
 
 int main(int argc, char *argv[]){
 	initRand();
-	BOARD_STATE bs[1];
-	int moves[27];
-	// must always initialize board!
-	resetBoard(bs);
+	BOARD_STATE *bs = initGame();
 
+	// declaring here so that parseArgs can strcpy into inputFEN
 	char inputFEN[99];
 	char outputFEN[99];
 
-	enum { NORMAL_MODE, FEN_MODE } mode = NORMAL_MODE;
-	// for now, should only have these types
-	ASSERT(argc == 3 || argc == 1);
 	mode = parseArgs(inputFEN, argc, argv);
 	switch(mode){
 		case NORMAL_MODE:
@@ -515,29 +515,22 @@ int main(int argc, char *argv[]){
 			break;
 		default:
 			printf(RED "ERROR: invalid mode: %d\n" reset, mode);
-			break;
+			exit(0);
 	}
 
-	// printf(YEL "mode: %d\n" reset, mode);
 	// TODO: put this inside the switch block
 	// NORMAL_MODE
 	if(mode == 0){
-		printf("Checking board initialization...\n");
-		ASSERT(bs -> castlePermission == 0);
-		char tmp[] = "r3k2r/p6p/p6p/p6p/P6P/P6P/P6P/R3K2R w KQkq -";
-		// char tmp[] = "8/PBk2r2/2R5/P5p1/P3NpPP/1b1PP3/6R1/2B2KN1 w KQkq -";
-		// char tmp[] = "rnk5/4bq2/p1n4r/Pp1PppNP/1P6/B1PP4/R2K1P1R/1N1B4 b KQkq -";
-		parseFEN(tmp, bs);
-		printBoard(bs, 0);
-		printAllMoves(moves, bs);
-			
-		char c;
-		while((c = getchar()) != 'q'){
-			printf("%d ", rand() % 3);
-		}
+		printf("Checking board initialization...\n\n");
+		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
+		char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
+		parseFEN(testFEN, bs);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		printAllMoves(bs);
 	}
 	// FEN_MODE
-	if(mode == 1){
+	else if(mode == 1){
 		parseFEN(inputFEN, bs);
 		int r = genRandomMove(bs);
 		genFEN(outputFEN, bs);
