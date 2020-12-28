@@ -5,14 +5,15 @@
 #include <ctype.h>	
 #include <time.h>
 #include "colors.h"
+#include "defs.h"
 
 int parseArgs(char *inputFEN, int argc, char *argv[]){
 	int c;
-	opterr = 0;
-	while ((c = getopt(argc, argv, "f:")) != -1){
-		switch (c){
+	while((c = getopt(argc, argv, "f:")) != -1){
+		switch(c){
 			case 'f':
 				strcpy(inputFEN, optarg);
+				return FEN_MODE;
 				break;
 			case '?':
 				if (optopt == 'f')
@@ -21,12 +22,13 @@ int parseArgs(char *inputFEN, int argc, char *argv[]){
 					fprintf(stderr, "Unknown option `-%c'.\n", optopt);
 				else
 					fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
-				return 1;
+				return -1;
 			default:
+				fprintf(stderr, "Error with arg parsing", optopt);
 				exit(1);
 		}
 	}
-	return 0;
+	return NORMAL_MODE;
 }
 
 int randInt(int lb, int ub){
@@ -35,30 +37,51 @@ int randInt(int lb, int ub){
 	return rand() % (ub - lb + 1) + lb;
 }
 
+const int levels = 3;
 struct node {
 	int data;
 	char name[30];
 	struct node *children[4];
 };
 
+int indent(int data){
+	return levels - data + 1;
+}
+int numChildren(){
+	return sizeof(((struct node *)0) -> children) / sizeof(((struct node *)0) -> children[0]);
+}
+
 // returns pointer to node
 struct node* newNode(int data){
+	if(data == 0){
+		return NULL;
+	}
 	struct node* n = (struct node*)malloc(sizeof(struct node));
 	n -> data = data;
-	for(int i = 0 ; i < sizeof(((struct node *)0) -> children)/sizeof(((struct node *)0) -> children[0]) ; i++){
-		n -> children[i] = NULL;
+	for(int i = 0 ; i < numChildren() ; i++){
+		n -> children[i] = newNode(data - 1);
 	}
 	return n;
 }
 
-void nodeTest(){
-	struct node *n = newNode(34143143);
-	printf(YEL "n->data: %d\n" reset, n -> data);
+
+void printNode(struct node* n){
+	printf(YEL "level: " reset "%d", n -> data);
+	for(int i = 0 ; i < numChildren() ; i++){
+		printf("\n");
+		for(int j = 0  ; j < indent(n -> data) ; j++){ printf("+"); }
+		if(n -> children[i] == NULL){
+			printf("null_child ");
+		} else {
+			printNode(n -> children[i]);
+		}
+	}
 }
 
-int mode = 4;
-void testMode(){
-	printf(CYN "mode: %d\n" reset, mode);
+
+void nodeTest(){
+	struct node *n = newNode(levels);
+	printNode(n);
 }
 
 int main(int argc, char *argv[]){
@@ -66,8 +89,8 @@ int main(int argc, char *argv[]){
 	char inputFEN[99];
 	int res = parseArgs(inputFEN, argc, argv);
 
-	mode = 5;
-	testMode();
-	// testing globals
+	// node stuff (12/28)
+	nodeTest();
+
 	return 0;
 }

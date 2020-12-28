@@ -13,3 +13,11 @@ BOARD_STATE* initGame(){
 	resetBoard(bs);
 	return bs;
 }
+
+void initLegalMoves(){
+	// TODO: remove this, temporary workaround
+	for(int m  = 0 ; m < 1000 ; m++){
+		legalMoves[m][2] = -1;
+	}
+
+}

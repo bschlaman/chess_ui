@@ -89,6 +89,7 @@ void makeMove(BOARD_STATE *bs, int from, int to){
 	// setting the pieces and switching side
 	board[to] = board[from];
 	board[from] = EMPTY;
+	// is this the best way to switch sides?
 	bs -> side = getColor(board[to]) ? WHITE : BLACK;
 
 	// promotion
@@ -103,13 +104,11 @@ void makeMove(BOARD_STATE *bs, int from, int to){
 	}
 
 	// en passant
-	// TODO: this really should be offboard
-	// since EMPTY indicates a piece, not a sq
-	// captures
+	// capture the enPas pawn
 	if(to == bs -> enPas){
 		board[to + (1 - 2 * getColor(piece)) * 10] = EMPTY;
 	}
-	// setting
+	// setting enPas
 	if(isPawn[piece] && abs(to - from) == 20){
 		bs -> enPas = to + (1 - 2 * getColor(piece)) * 10;
 	} else {
@@ -120,7 +119,8 @@ void makeMove(BOARD_STATE *bs, int from, int to){
 void saveMove(int from, int to, int capture){
 	// TODO: remove this, temporary workaround
 	// extern int[1000][3] legalMoves;
-	for(int m  = 0 ; m < 1000 ; m++){
+	int m;
+	for(m = 0 ; m < 1000 ; m++){
 		if(legalMoves[m][2] == -1){
 			legalMoves[m][0] = from;		
 			legalMoves[m][1] = to;		
@@ -129,9 +129,9 @@ void saveMove(int from, int to, int capture){
 		}
 	}
 
-	if(mode == NORMAL_MODE){
+	if(mode != FEN_MODE){
 		char sqfr[2];
-		printf(YEL "      move: " reset);
+		printf(YEL "      move %d: " reset, m);
 		getAlgebraic(sqfr, from);
 		printf("from: %s ", sqfr);
 		getAlgebraic(sqfr, to);
@@ -141,15 +141,10 @@ void saveMove(int from, int to, int capture){
 }
 
 int genRandomMove(BOARD_STATE *bs){
-	// TODO: remove this, temporary workaround
-	// extern int[1000][3] legalMoves;
-	for(int m  = 0 ; m < 1000 ; m++){
-		legalMoves[m][2] = -1;
-	}
-
 	int moves[27];
-
 	int i, piece, sq, total = 0, side;
+
+	initLegalMoves();
 	for(i = 0 ; i < 64 ; i++){
 		sq = sq64to120(i);
 		piece = bs -> board[sq];
@@ -188,6 +183,8 @@ int printAllMoves(BOARD_STATE *bs){
 	int i, piece, sq, total = 0;
 	int moves[27];
 	int side = bs -> side;
+
+	initLegalMoves();
 	for(i = 0 ; i < 64 ; i++){
 		sq = sq64to120(i);
 		piece = bs -> board[sq];
@@ -257,14 +254,15 @@ int enPasCorrectColor(int enPas, int side){
 
 int newBoardCheck(int *board, int sq, int cs){
 	// TODO: a bit clunky passing in a board and then passing a BOARD_STATE to isCheck()
-	BOARD_STATE tbs[1];
-	resetBoard(tbs);
+	// hypothetical board state
+	BOARD_STATE *hbs = malloc(sizeof(BOARD_STATE));;
+	resetBoard(hbs);
 	for(int i = 0 ; i < 120 ; i++){
-		tbs -> board[i] = board[i];
+		hbs -> board[i] = board[i];
 	}
-	tbs -> board[sq] = EMPTY;
-	tbs -> board[cs] = board[sq];
-	return isCheck(tbs, getColor(board[sq]));
+	hbs -> board[sq] = EMPTY;
+	hbs -> board[cs] = board[sq];
+	return isCheck(hbs, getColor(board[sq]));
 }
 
 int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
@@ -343,7 +341,7 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 		}
 		// enPas
 		cs = bs -> enPas;
-		if(cs != EMPTY && !newBoardCheck(board, sq, cs)){
+		if(cs != OFFBOARD && !newBoardCheck(board, sq, cs)){
 			// ASSERT((cs <= 78 && cs >= 71) || (cs <= 48 && cs >= 41));
 			// printf(CYN "assrt: %d\n" reset, cs - 40 - 30 * getColor(piece));
 			// ASSERT(cs - 40 - 30 * getColor(piece) >= 1 && cs - 40 - 30 * getColor(piece) <= 8);
@@ -402,7 +400,6 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 }
 
 void resetBoard(BOARD_STATE *bs){
-	// this can go on a diet
 	int i;
 	for(i = 0 ; i < 120 ; i++){
 		bs -> board[i] = OFFBOARD;
@@ -475,12 +472,14 @@ void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 
 int parseArgs(char *inputFEN, int argc, char *argv[]){
 	int c;
-  while((c = getopt(argc, argv, "f:")) != -1){
+  while((c = getopt(argc, argv, "nf:")) != -1){
 		switch(c){
 			case 'f':
 				strcpy(inputFEN, optarg);
-				// TODO: this is clunky, need a better way to check this
 				return FEN_MODE;
+				break;
+			case 'n':
+				return NODE_MODE;
 				break;
 			case '?':
 				if(optopt == 'f')
@@ -513,6 +512,8 @@ int main(int argc, char *argv[]){
 			break;
 		case FEN_MODE:
 			break;
+		case NODE_MODE:
+			break;
 		default:
 			printf(RED "ERROR: invalid mode: %d\n" reset, mode);
 			exit(0);
@@ -520,7 +521,7 @@ int main(int argc, char *argv[]){
 
 	// TODO: put this inside the switch block
 	// NORMAL_MODE
-	if(mode == 0){
+	if(mode == NORMAL_MODE){
 		printf("Checking board initialization...\n\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
@@ -530,10 +531,29 @@ int main(int argc, char *argv[]){
 		printAllMoves(bs);
 	}
 	// FEN_MODE
-	else if(mode == 1){
+	else if(mode == FEN_MODE){
 		parseFEN(inputFEN, bs);
 		int r = genRandomMove(bs);
 		genFEN(outputFEN, bs);
 		printf("%s\n", outputFEN);
+	}
+	else if (mode == NODE_MODE){
+		printf("Checking board initialization...\n\n");
+		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
+		char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
+		parseFEN(testFEN, bs);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		printAllMoves(bs);
+		int r = genRandomMove(bs);
+		genFEN(outputFEN, bs);
+		printf("r: %d\n", r);
+		printf("%s\n", outputFEN);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		// for(int u = 0 ; u < 30 ; u++){
+		// 	printf(CYN "legMov[u][2]: %d " reset, legalMoves[u][2]);
+		// }
+		printAllMoves(bs);
 	}
 }
