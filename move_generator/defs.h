@@ -62,7 +62,7 @@ typedef struct {
 	int enPas;
 	int castlePermission;
 	int capturedPiece;
-} MOVE_STATE;
+} MOVE_STACK;
 
 typedef struct {
 	// rename to pieces?
@@ -76,9 +76,7 @@ typedef struct {
 	// Hash key, unique representation of board
 	U64 posKey;
 	
-	// Number of pieces of type [x]
-	
-	MOVE_STATE history[100];
+	MOVE_STACK history[100];
 } BOARD_STATE;
 
 // global mode
@@ -111,5 +109,5 @@ extern void initRand();
 extern BOARD_STATE* initGame();
 extern void initLegalMoves();
 // moves.c
-extern void makeMove(BOARD_STATE *bs, int from, int to);
+extern void makeMove(BOARD_STATE *bs, int from, int to, int moveType);
 extern void undoMove(BOARD_STATE *bs);

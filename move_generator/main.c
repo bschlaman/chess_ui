@@ -8,11 +8,11 @@
 
 
 void printBoard(BOARD_STATE *bs, int options);
-int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
+int pieceMoves(BOARD_STATE *bs, int piece, int sq);
 int genRandomMove(BOARD_STATE *bs);
 int printAllMoves(BOARD_STATE *bs);
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
-void saveMove(int from, int to, int capture);
+void saveMove(int from, int to, int moveType);
 int getType(int piece);
 int getColor(int piece);
 int isCheck(BOARD_STATE *bs, int color);
@@ -48,7 +48,7 @@ int getColor(int piece){
 	return piece > 6 && piece < 13;
 }
 
-void saveMove(int from, int to, int capture){
+void saveMove(int from, int to, int moveType){
 	// TODO: remove this, temporary workaround
 	// extern int[1000][3] legalMoves;
 	int m;
@@ -56,7 +56,7 @@ void saveMove(int from, int to, int capture){
 		if(legalMoves[m][2] == -1){
 			legalMoves[m][0] = from;		
 			legalMoves[m][1] = to;		
-			legalMoves[m][2] = capture;		
+			legalMoves[m][2] = moveType;
 			break;
 		}
 	}
@@ -68,7 +68,7 @@ void saveMove(int from, int to, int capture){
 		printf("from: %s ", sqfr);
 		getAlgebraic(sqfr, to);
 		printf("to: %s ", sqfr);
-		printf("capture: %s\n", capture ? "yes" : "no");
+		printf("moveType: %s\n", moveType);
 	}
 }
 
@@ -82,7 +82,7 @@ int genRandomMove(BOARD_STATE *bs){
 		piece = bs -> board[sq];
 		side = bs -> side;
 		if(piece != EMPTY && getColor(piece) == side){
-			total += pieceMoves(moves, bs, piece, sq);
+			total += pieceMoves(bs, piece, sq);
 		}
 	}
 
@@ -104,7 +104,7 @@ int genRandomMove(BOARD_STATE *bs){
 		// while(legalMoves[r][0] != 67 && legalMoves[r][0] != 32){ // && legalMoves[r][0] != 25){
 		// 	r = rand() % total;
 		// }
-		makeMove(bs, legalMoves[r][0], legalMoves[r][1]);
+		makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
 		return r;
 	} else {
 		return -1;
@@ -122,7 +122,7 @@ int printAllMoves(BOARD_STATE *bs){
 		piece = bs -> board[sq];
 		if(piece != EMPTY && getColor(piece) == side){
 			printf(GRN " == PIECE: %c\n" reset, pieceChar[piece]);
-			total += pieceMoves(moves, bs, piece, sq);
+			total += pieceMoves(bs, piece, sq);
 		}
 	}
 	printf(BLU "total moves in pos: " reset "%d\n", total);
@@ -197,7 +197,7 @@ int newBoardCheck(int *board, int sq, int cs){
 	return isCheck(hbs, getColor(board[sq]));
 }
 
-int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
+int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 	// plan here is to use the 120 sq board
 	// and move in particular "directions"
 	// until the piece is OFFBOARD
@@ -218,15 +218,9 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 		{-11, 9, 11, -9, -10, -1, 10, 1}  // kings 4
 	};
 
-	// initialize moves array
-	for(i = 0 ; i < 27 ; i++){
-		moves[i] = -1;
-	}
-	i = 0;
-	// TODO: is there a better way to check for invalid index?
 	ASSERT(sq >= 0 && sq <= 120 && board[sq] != OFFBOARD);
 
-	// a better move generation
+	// move generation
 	if(!isPawn[piece]){
 		// type = proper index for translation[][]
 		int d, type = getType(piece);
@@ -237,9 +231,9 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 			while(board[cs += translation[type][d]] != OFFBOARD){
 				if(!newBoardCheck(board, sq, cs)){
 					if(board[cs] == EMPTY){
-						saveMove(sq, cs, 0); moves[i] = cs; i++; total++;
+						saveMove(sq, cs, 0); total++;
 					} else {
-						if(getColor(piece) != getColor(board[cs])){ saveMove(sq, cs, 1); moves[i] = cs; i++; total++ ; }
+						if(getColor(piece) != getColor(board[cs])){ saveMove(sq, cs, 4); total++; }
 						break;
 					}
 				}
@@ -253,23 +247,23 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 		// forward 1
 		// mapping {0,1} -> {-1,1} -> {-10,10}
 		cs = sq - (1 - 2 * getColor(piece)) * 10;
-		if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){ saveMove(sq, cs, 0); moves[i] = cs; i++; total++; }
+		if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){ saveMove(sq, cs, 0); total++; }
 		// forward 2
 		if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
 			cs = sq - (1 - 2 * getColor(piece)) * 20;
 			if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){
-				saveMove(sq, cs, 0); moves[i] = cs; i++; total++;
+				saveMove(sq, cs, 1); total++;
 			}
 		}
 
 		// captures
 		cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
 		if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
-			saveMove(sq, cs, 1); moves[i] = cs; i++; total++;
+			saveMove(sq, cs, 4); total++;
 		}
 		cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
 		if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
-			saveMove(sq, cs, 1); moves[i] = cs; i++; total++;
+			saveMove(sq, cs, 4); total++;
 		}
 		// enPas
 		cs = bs -> enPas;
@@ -280,11 +274,11 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 			// enPasCaptureFromSq is the same as what it would look like to captrue TO that sq
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 + 1;
 			if(sq == enPasCaptureFromSq && enPasCorrectColor(cs, getColor(piece))){
-				saveMove(sq, cs, 1); moves[i] = cs; i++; total++;
+				saveMove(sq, cs, 5); total++;
 			}
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 - 1;
 			if(sq == enPasCaptureFromSq && enPasCorrectColor(cs, getColor(piece))){
-				saveMove(sq, cs, 1); moves[i] = cs; i++; total++;
+				saveMove(sq, cs, 5); total++;
 			}
 		}
 	}
@@ -299,7 +293,7 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 			&& !newBoardCheck(board, sq, sq + 2) \
 			&& board[96] == EMPTY && board[97] == EMPTY){
 			ASSERT(sq == 95);
-			saveMove(sq, sq + 2, 0); total++;
+			saveMove(sq, sq + 2, 2); total++;
 		}
 		if(cp & WQCA \
 			&& !newBoardCheck(board, sq, sq) \
@@ -307,7 +301,7 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 			&& !newBoardCheck(board, sq, sq - 2) \
 			&& board[92] == EMPTY && board[93] == EMPTY && board[94] == EMPTY){
 			ASSERT(sq == 95);
-			saveMove(sq, sq - 2, 0); total++;
+			saveMove(sq, sq - 2, 3); total++;
 		}
 	}
 	if(piece == bK){
@@ -317,7 +311,7 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 			&& !newBoardCheck(board, sq, sq + 2) \
 			&& board[26] == EMPTY && board[27] == EMPTY){
 			ASSERT(sq == 25);
-			saveMove(sq, sq + 2, 0); total++;
+			saveMove(sq, sq + 2, 2); total++;
 		}
 		if(cp & WQCA \
 			&& !newBoardCheck(board, sq, sq) \
@@ -325,7 +319,7 @@ int pieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 			&& !newBoardCheck(board, sq, sq - 2) \
 			&& board[22] == EMPTY && board[23] == EMPTY && board[24] == EMPTY){
 			ASSERT(sq == 25);
-			saveMove(sq, sq - 2, 0); total++;
+			saveMove(sq, sq - 2, 3); total++;
 		}
 	}
 	return total;
@@ -396,7 +390,7 @@ void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 	resetBoard(tmpBoard);
 	tmpBoard -> board[sq] = piece;
 
-	pieceMoves(moves, tmpBoard, piece, sq);
+	pieceMoves(tmpBoard, piece, sq);
 	printf(YEL " == piece: %c == \n" reset, pieceChar[piece]);
 	for(i = 0 ; moves[i] != -1 ; i++){
 		tmpBoard -> board[moves[i]] = CANDIDATESQ;
@@ -480,16 +474,17 @@ int main(int argc, char *argv[]){
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
-		printAllMoves(bs);
-		int r = genRandomMove(bs);
-		genFEN(outputFEN, bs);
-		printf("r: %d\n", r);
-		printf("%s\n", outputFEN);
+
+		makeMove(bs, 85, 65, 1);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
-		// for(int u = 0 ; u < 30 ; u++){
-		// 	printf(CYN "legMov[u][2]: %d " reset, legalMoves[u][2]);
-		// }
-		printAllMoves(bs);
+		// printAllMoves(bs);
+		// int r = genRandomMove(bs);
+		// genFEN(outputFEN, bs);
+		// printf("r: %d\n", r);
+		// printf("%s\n", outputFEN);
+		// printBoard(bs, OPT_64_BOARD);
+		// printBoard(bs, OPT_BOARD_STATE);
+		// printAllMoves(bs);
 	}
 }
