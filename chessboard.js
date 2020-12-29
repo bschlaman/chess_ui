@@ -1,5 +1,5 @@
 window.onload = function(){
-	canvSize = 700;
+	canvSize = 400;
 	ranks = files = 8;
 	squareSize = canvSize / ranks;
 	mouseCol = -1;
@@ -10,6 +10,8 @@ window.onload = function(){
 
 	pieces = [];
 	side = "both";
+	castlePermission = "KQkq";
+	enPas = "-";
 	fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	fen = "1r1qkb1r/1bp2pp1/p2p1n1p/3Np3/2pPP3/5N2/PPPQ1PPP/R1B2RK1 w k - 0 13";
 
@@ -106,24 +108,23 @@ function trackmouse(event){
 
 	selectSquare();
 
-	// TESTING
-	specialSquares = [];
-	let l1 = [];
-	let l2 = [];
-	let l3 = [];
-	let l4 = [];
-	l1 = getKSquare(rc2Index(mouseRow, mouseCol));
-	for(let x = 0 ; x < l1.length ; x++){
-		l2.push(...getKSquare(l1[x]));
-	}
-	for(let x = 0 ; x < l2.length ; x++){
-		l3.push(...getKSquare(l2[x]));
-	}
-	for(let x = 0 ; x < l3.length ; x++){
-		l4.push(...getKSquare(l3[x]));
-	}
-	specialSquares = l4;
-	// console.log(l4);
+	// // TESTING
+	// specialSquares = [];
+	// let l1 = [];
+	// let l2 = [];
+	// let l3 = [];
+	// let l4 = [];
+	// l1 = getKSquare(rc2Index(mouseRow, mouseCol));
+	// for(let x = 0 ; x < l1.length ; x++){
+	// 	l2.push(...getKSquare(l1[x]));
+	// }
+	// for(let x = 0 ; x < l2.length ; x++){
+	// 	l3.push(...getKSquare(l2[x]));
+	// }
+	// for(let x = 0 ; x < l3.length ; x++){
+	// 	l4.push(...getKSquare(l3[x]));
+	// }
+	// specialSquares = l4;
 
 }
 
@@ -243,6 +244,10 @@ var setFEN = function(fen){
 			file++;
 		}
 	}
+	let stateInfo = fen.split(' ');
+	side = stateInfo[1] == "b" ? "black" : "white";
+	castlePermission = stateInfo[2];
+	enPas = stateInfo[3];
 }
 
 // This can be written better
@@ -264,7 +269,10 @@ var genFEN = function(){
 	if(empty){ fen += empty; empty = 0; }
 	fen += ' ';
 	fen += side == "black" ? "b" : "w";
-	fen += ' KQkq -';
+	fen += ' ';
+	fen += castlePermission;
+	fen += ' ';
+	fen += enPas;
 
 	return fen;
 }
@@ -317,7 +325,6 @@ function formatPOSTData(object) {
 }
 
 var randMove = function(){
-	side = side == "black" ? "white" : "black"
 	let fen = genFEN();
 	let xhr = new XMLHttpRequest();
 	let url = "http://192.168.1.90:5812/fen?fen=" + fen;
@@ -330,9 +337,15 @@ var randMove = function(){
 			alert('Something went wrong with submission.  Please contact Brendan.')
 		} else {
 			// success
-			let randFEN = xhr.responseText.split('\n')[4];
+			let randFEN = xhr.responseText.split('\n')[0];
 			console.log("res: " + randFEN);
-			setFEN(randFEN);
+			if(randFEN == fen){
+				alert("MATE");
+			} else {
+				let input = document.querySelectorAll("form input.input")[0];
+				input.value = randFEN;
+				setFEN(randFEN);
+			}
 		}
 	};
 	xhr.send();
