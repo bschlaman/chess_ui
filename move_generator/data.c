@@ -7,4 +7,5 @@ const int isKing[] = {false, false, false, false, false, false, true, false, fal
 const int OFFBOARD = -1;
 
 int legalMoves[1000][3];
+int mode = 0;
 
