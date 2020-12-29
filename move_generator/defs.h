@@ -42,36 +42,27 @@ enum { WHITE, BLACK, NEITHER };
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, CANDIDATESQ };
 
 typedef struct {
-    int move;
-    int castlePerm;
-    int enPas;
-    int fiftyMove;
-    U64 posKey;
+	int side;
+	int enPas;
+	int castlePermission;
+	int capturedPiece;
 } STATE_UNDO;
 
 typedef struct {
-		// rename to pieces?
-    int board[120];
-    int fiftyMove;
-
-		// fen?
-
-    int side;
-    int enPas;
-    int castlePermission;
-
-    // Hash key, unique representation of board
-    U64 posKey;
-
-    // Number of pieces of type [x]
-
-    STATE_UNDO history[50];
-
-    // piece list
-    int piecesList[13][10];
-    // pList[wN][0] = E1;
-    // pList[wN][1] = D4;
-
+	// rename to pieces?
+	int board[120];
+	int fiftyMove;
+	
+	int side;
+	int enPas;
+	int castlePermission;
+	
+	// Hash key, unique representation of board
+	U64 posKey;
+	
+	// Number of pieces of type [x]
+	
+	STATE_UNDO history[50];
 } BOARD_STATE;
 
 // global mode
