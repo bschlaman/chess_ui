@@ -57,10 +57,8 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 			// setting enPas
 			if(isPawn[piece] && abs(to - from) == 20){
 				bs -> enPas = to + (1 - 2 * getColor(piece)) * 10;
-			} else {
-				bs -> enPas = OFFBOARD;
 			}
-		break;
+			break;
 		case 2:
 		case 3:
 			// TODO: put some of his in case 2:
@@ -73,14 +71,10 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 				case 27: board[28] = EMPTY; board[26] = bR; break;
 				case 23: board[21] = EMPTY; board[24] = bR; break;
 				default:
+					printf(RED "Error castling: %d\n" reset, from);
 					printf(RED "Error castling: %d\n" reset, board[from]);
+					printf(RED "Error castling: %d\n" reset, bs -> castlePermission);
 					exit(1);
-			}
-			if(getColor(piece)){
-				bs -> castlePermission &= 12;
-			} else {
-				ASSERT(piece == wK);
-				bs -> castlePermission &= 3;
 			}
 			break;
 		case 4: break;
@@ -111,6 +105,8 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 			printf(RED "Error with moveType on makeMove\n" reset);
 			exit(1);
 	}
+
+	// TODO: these need to be elsewhere
 	// Rook moves, cperm check at the end is only for efficiency
 	if(piece == wR){
 		if(from == 98 && cperm & WKCA){ bs -> castlePermission &= 7; }
@@ -119,6 +115,21 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 	if(piece == bR){
 		if(from == 28 && cperm & BKCA){ bs -> castlePermission &= 13; }
 		if(from == 21 && cperm & BQCA){ bs -> castlePermission &= 14; }
+	}
+	// unset en passant sq
+	if(moveType != 1){
+		bs -> enPas = OFFBOARD;
+	}
+	// unset cperms on king moves, castling or not
+	if(isKing[piece]){
+		if(getColor(piece)){
+			ASSERT(piece == bK);
+			// TODO: put these numbers in terms of WKCA, etc.
+			bs -> castlePermission &= 12;
+		} else {
+			ASSERT(piece == wK);
+			bs -> castlePermission &= 3;
+		}
 	}
 
 	// setting the pieces and switching side
@@ -140,12 +151,6 @@ void undoMove(BOARD_STATE *bs){
 	from = sq64to120(fromto >> 10);
 	to = sq64to120((fromto >> 4) & 63);
 	moveType = fromto & 15;
-	printf(CYN "from: %d\n" reset, from);
-	printf(CYN "to: %d\n" reset, to);
-	printf(CYN "moveType: %d\n" reset, moveType);
-	printf(CYN "fromto: %d\n" reset, fromto);
-	printf(CYN "fromto>>4: %d\n" reset, fromto>>4);
-	printf(CYN "((1 << 10) - 1): %d\n" reset, (1 << 10) - 1);
 
 	// 2) restore reversible
 	int *board = bs -> board;

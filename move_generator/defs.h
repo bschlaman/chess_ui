@@ -36,8 +36,7 @@ enum {
 };
 
 // 0 0 0 0
-// TODO: these should be reversed, 8->1
-enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
+enum { WKCA = 8, WQCA = 4, BKCA = 2, BQCA = 1 };
 enum { WHITE, BLACK, NEITHER };
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, CANDIDATESQ };
 // move encoding, using the chess programming wiki method
@@ -76,7 +75,7 @@ typedef struct {
 	// Hash key, unique representation of board
 	U64 posKey;
 	
-	MOVE_STACK history[100];
+	MOVE_STACK history[200];
 } BOARD_STATE;
 
 // global mode
