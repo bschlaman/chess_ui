@@ -36,22 +36,38 @@ enum {
 };
 
 // 0 0 0 0
+// TODO: these should be reversed, 8->1
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
 enum { WHITE, BLACK, NEITHER };
-// use EMPTY for no piece, and also when there is no enPas square
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, CANDIDATESQ };
+// move encoding, using the chess programming wiki method
+// 0  0	0	0	0	quiet moves
+// 1  0	0	0	1	double pawn push
+// 2  0	0	1	0	king castle
+// 3  0	0	1	1	queen castle
+// 4  0	1	0	0	captures
+// 5  0	1	0	1	ep-capture
+// 8  1	0	0	0	knight-promotion
+// 9  1	0	0	1	bishop-promotion
+// 10	1	0	1	0	rook-promotion
+// 11	1	0	1	1	queen-promotion
+// 12	1	1	0	0	knight-promo capture
+// 13	1	1	0	1	bishop-promo capture
+// 14	1	1	1	0	rook-promo capture
+// 15	1	1	1	1	queen-promo capture
+enum { PROMOTION = 8, CAPTURE = 4, SPECIAL1 = 2, SPECIAL2 = 1 };
 
 typedef struct {
-	int side;
+	unsigned short int fromto;
 	int enPas;
 	int castlePermission;
 	int capturedPiece;
-} STATE_UNDO;
+} MOVE_STATE;
 
 typedef struct {
 	// rename to pieces?
 	int board[120];
-	int fiftyMove;
+	int ply;
 	
 	int side;
 	int enPas;
@@ -62,7 +78,7 @@ typedef struct {
 	
 	// Number of pieces of type [x]
 	
-	STATE_UNDO history[50];
+	MOVE_STATE history[100];
 } BOARD_STATE;
 
 // global mode
@@ -94,3 +110,6 @@ extern void resetBoard(BOARD_STATE *bs);
 extern void initRand();
 extern BOARD_STATE* initGame();
 extern void initLegalMoves();
+// moves.c
+extern void makeMove(BOARD_STATE *bs, int from, int to);
+extern void undoMove(BOARD_STATE *bs);

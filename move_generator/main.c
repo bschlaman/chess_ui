@@ -13,7 +13,6 @@ int genRandomMove(BOARD_STATE *bs);
 int printAllMoves(BOARD_STATE *bs);
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 void saveMove(int from, int to, int capture);
-void makeMove(BOARD_STATE *bs, int from, int to);
 int getType(int piece);
 int getColor(int piece);
 int isCheck(BOARD_STATE *bs, int color);
@@ -47,73 +46,6 @@ int getType(int piece){
 int getColor(int piece){
 	// black is 7 - 12
 	return piece > 6 && piece < 13;
-}
-
-void makeMove(BOARD_STATE *bs, int from, int to){
-	int *board = bs -> board;
-	int piece = board[from];
-	int cp = bs -> castlePermission;
-
-	// castling, move the rook
-	if(isKing[piece]){
-		if(abs(to - from) == 2){
-			switch(to){
-				case 97: board[98] = EMPTY; board[96] = wR; break;
-				case 93: board[91] = EMPTY; board[94] = wR; break;
-				case 27: board[28] = EMPTY; board[26] = wR; break;
-				case 23: board[21] = EMPTY; board[24] = wR; break;
-				default:
-					printf(RED "Error castling: %d\n" reset, board[from]);
-					exit(1);
-			}
-		}
-		if(getColor(piece)){
-			bs -> castlePermission &= 12;
-		} else {
-			ASSERT(piece == wK);
-			bs -> castlePermission &= 3;
-		}
-	}
-	// TODO: assert during FEN parse that castleperm implies rook and king location
-	// i.e. KQkq -> rooks in the corners and kings on the proper squares
-	// Rook moves, cp check at the end is only for efficiency
-	if(piece == wR){
-		if(from == 98 && cp & WKCA){ bs -> castlePermission &= 7; }
-		if(from == 91 && cp & WQCA){ bs -> castlePermission &= 11; }
-	}
-	if(piece == bR){
-		if(from == 28 && cp & BKCA){ bs -> castlePermission &= 13; }
-		if(from == 21 && cp & BQCA){ bs -> castlePermission &= 14; }
-	}
-
-	// setting the pieces and switching side
-	board[to] = board[from];
-	board[from] = EMPTY;
-	// is this the best way to switch sides?
-	bs -> side = getColor(board[to]) ? WHITE : BLACK;
-
-	// promotion
-	// TODO: obviously move this somewhere else
-	int sq = sq120to64(to);
-	if(isPawn[board[to]] && ((sq>=0&&sq<=7)||(sq>=56&&sq<=63))){
-		if(getColor(board[to])){
-			board[to] = bQ;
-		} else {
-			board[to] = wQ;
-		}
-	}
-
-	// en passant
-	// capture the enPas pawn
-	if(to == bs -> enPas){
-		board[to + (1 - 2 * getColor(piece)) * 10] = EMPTY;
-	}
-	// setting enPas
-	if(isPawn[piece] && abs(to - from) == 20){
-		bs -> enPas = to + (1 - 2 * getColor(piece)) * 10;
-	} else {
-		bs -> enPas = OFFBOARD;
-	}
 }
 
 void saveMove(int from, int to, int capture){
@@ -407,9 +339,12 @@ void resetBoard(BOARD_STATE *bs){
 	for(i = 0 ; i < 64 ; i++){
 		bs -> board[sq64to120(i)] = EMPTY;
 	}
+	// I should make these the starting pos
+	// and load the startFEN
 	bs -> side = NEITHER;
 	bs -> castlePermission = 0;
 	bs -> enPas = OFFBOARD;
+	bs -> ply = 1;
 }
 
 void printBoard(BOARD_STATE *bs, int option){
@@ -524,7 +459,8 @@ int main(int argc, char *argv[]){
 	if(mode == NORMAL_MODE){
 		printf("Checking board initialization...\n\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
-		char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
+		// char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
+		char testFEN[] = "R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1";
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);

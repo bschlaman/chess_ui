@@ -92,5 +92,17 @@ int main(int argc, char *argv[]){
 	// node stuff (12/28)
 	nodeTest();
 
+	unsigned short int fromto = 65534;
+	printf("fromto size: %d\n", sizeof(fromto));
+	printf("fromto size: %d\n", sizeof(unsigned short int));
+	printf("fromto: %d\n", fromto);
+	fromto++;
+	printf("fromto: %d\n", fromto);
+	fromto++;
+	printf("fromto: %d\n", fromto);
+	fromto++;
+	printf("fromto: %d\n", fromto);
+	printf("fromto size: %d\n", sizeof(fromto));
+
 	return 0;
 }
