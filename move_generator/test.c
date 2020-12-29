@@ -84,6 +84,17 @@ void nodeTest(){
 	printNode(n);
 }
 
+typedef struct {
+	int data;
+} STATE;
+typedef struct {
+	STATE hist[10];
+} BOARD;
+BOARD* init(){
+	BOARD *b = malloc(sizeof(BOARD));
+	return b;
+}
+
 int main(int argc, char *argv[]){
 	// arg stuff
 	char inputFEN[99];
@@ -93,7 +104,10 @@ int main(int argc, char *argv[]){
 	nodeTest();
 
 	unsigned short int fromto = 65534;
-	printf(CYN "fromto: %d\n" reset, fromto & 15);
+	BOARD *b = init();
+	STATE s = b -> hist[1];
+	s.data = 5;
+	printf(CYN "s.data: %d\n" reset, s.data);
 
 	return 0;
 }

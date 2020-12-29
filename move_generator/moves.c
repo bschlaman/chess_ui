@@ -1,4 +1,6 @@
+#include <stdio.h>
 #include "defs.h"
+#include "colors.h"
 
 // to know in order to undo a move:
 // from-to
@@ -20,6 +22,7 @@
 
 void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 	// TODO: looking up the board is very expensive!!!
+	// TODO: should I be using a pointer to a MOVE_STACK?
 	// TODO: I think the logic for 3) is wonky...
 	// I should be using nested if statements in a for loop
 	// for(i = 1 ; i < 16 ; i = i * 2)
@@ -27,8 +30,8 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 	// if moveType == 4
 
 	// 1) update the move stack with info about current pos
-	MOVE_STACK *ms = bs -> history[ply];
-	int capturedPiece = board[to];
+	MOVE_STACK *ms = &(bs -> history[bs -> ply]);
+	int capturedPiece = bs -> board[to];
 	unsigned short int fromto = 0;
 	fromto |= sq120to64(from) << 10;
 	fromto |= sq120to64(to) << 4;
@@ -96,15 +99,14 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 		case 15:
 			// promotion
 			// TODO: obviously finish this logic for all promo types
-			int sq = sq120to64(to);
-			if(isPawn[board[to]] && ((sq>=0&&sq<=7)||(sq>=56&&sq<=63))){
+			if(isPawn[board[to]] && ((sq120to64(to)>=0&&sq120to64(to)<=7)||(sq120to64(to)>=56&&sq120to64(to)<=63))){
 				if(getColor(board[to])){
 					board[to] = bQ;
 				} else {
 					board[to] = wQ;
 				}
 			}
-		break
+		break;
 		default:
 			printf(RED "Error with moveType on makeMove\n" reset);
 			exit(1);
@@ -132,21 +134,29 @@ void undoMove(BOARD_STATE *bs){
 	// 1) decrement ply
 	bs -> ply--;
 
+	MOVE_STACK *ms = &(bs -> history[bs -> ply]);
+	int capturedPiece = ms -> capturedPiece;
+	unsigned short int fromto = ms -> fromto;
+	from = sq64to120(fromto >> 10);
+	to = sq64to120((fromto >> 4) & 63);
+	moveType = fromto & 15;
+	printf(CYN "from: %d\n" reset, from);
+	printf(CYN "to: %d\n" reset, to);
+	printf(CYN "moveType: %d\n" reset, moveType);
+	printf(CYN "fromto: %d\n" reset, fromto);
+	printf(CYN "fromto>>4: %d\n" reset, fromto>>4);
+	printf(CYN "((1 << 10) - 1): %d\n" reset, (1 << 10) - 1);
+
 	// 2) restore reversible
 	int *board = bs -> board;
 	// setting the pieces and switching side
 	board[from] = board[to];
+	board[to] = EMPTY;
 	// is this the best way to switch sides?
 	bs -> side = getColor(board[to]) ? WHITE : BLACK;
 
 	// 3) restore irreversible
 	// 3.1) restore non-board stuff
-	MOVE_STACK *ms = bs -> history[ply];
-	int capturedPiece = ms -> capturedPiece;
-	unsigned short int fromto = ms -> fromto;
-	from = sq64to120(fromto >> 10);
-	to = sq64to120(fromto >> 4);
-	moveType = fromto & 15;
 	bs -> enPas = ms -> enPas;
 	bs -> castlePermission = ms -> castlePermission;
 	capturedPiece = ms -> capturedPiece;
@@ -162,7 +172,8 @@ void undoMove(BOARD_STATE *bs){
 	// en passant capture
 	if(moveType == 5){
 		board[to] = EMPTY;
-		board[to + (1 - 2 * getColor(piece)) * 10] = capturedPiece;
+		// TODO: I use getColor elsewhere
+		board[to + (1 - 2 * !getColor(capturedPiece)) * 10] = capturedPiece;
 	}
 	// uncastling, move the rook
 	if(moveType == 2 || moveType == 3){

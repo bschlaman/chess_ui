@@ -13,8 +13,6 @@ int genRandomMove(BOARD_STATE *bs);
 int printAllMoves(BOARD_STATE *bs);
 void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
 void saveMove(int from, int to, int moveType);
-int getType(int piece);
-int getColor(int piece);
 int isCheck(BOARD_STATE *bs, int color);
 int newBoardCheck(int *board, int sq, int cs);
 // TODO: somehow there's an issue with the global var
@@ -61,14 +59,14 @@ void saveMove(int from, int to, int moveType){
 		}
 	}
 
-	if(mode != FEN_MODE){
+	if(mode != FEN_MODE && mode != NODE_MODE){
 		char sqfr[2];
 		printf(YEL "      move %d: " reset, m);
 		getAlgebraic(sqfr, from);
 		printf("from: %s ", sqfr);
 		getAlgebraic(sqfr, to);
 		printf("to: %s ", sqfr);
-		printf("moveType: %s\n", moveType);
+		printf("moveType: %d\n", moveType);
 	}
 }
 
@@ -104,7 +102,7 @@ int genRandomMove(BOARD_STATE *bs){
 		// while(legalMoves[r][0] != 67 && legalMoves[r][0] != 32){ // && legalMoves[r][0] != 25){
 		// 	r = rand() % total;
 		// }
-		makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
+		// makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
 		return r;
 	} else {
 		return -1;
@@ -375,11 +373,16 @@ void printBoard(BOARD_STATE *bs, int option){
 
 	if(option == OPT_BOARD_STATE){
 		printf(BLU "side to move: " reset "%s\n", bs -> side == WHITE ? "white" : "black");
+		printf(BLU "ply: " reset "%d\n", bs -> ply);
 		char sqAN[2];
 		getAlgebraic(sqAN, bs -> enPas);
 		printf(BLU "en passant sq: " reset "%s\n", sqAN);
 		printf(BLU "white in check: " reset "%s\n", isCheck(bs, WHITE) ? "true" : "false");
 		printf(BLU "black in check: " reset "%s\n", isCheck(bs, BLACK) ? "true" : "false");
+		// printf(CYN "ms -> fromto: %d\n" reset, ms -> fromto);
+		// printf(CYN "ms -> enPas: %d\n" reset, ms -> enPas);
+		// printf(CYN "ms -> castlePerm: %d\n" reset, ms -> castlePermission);
+		// printf(CYN "ms -> captured: %d\n" reset, ms -> capturedPiece);
 	}
 }
 
@@ -474,8 +477,35 @@ int main(int argc, char *argv[]){
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
+		int r;
 
-		makeMove(bs, 85, 65, 1);
+		r = genRandomMove(bs);
+		makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		r = genRandomMove(bs);
+		makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		r = genRandomMove(bs);
+		makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		r = genRandomMove(bs);
+		makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+
+		undoMove(bs);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		undoMove(bs);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		undoMove(bs);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		undoMove(bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
 		// printAllMoves(bs);

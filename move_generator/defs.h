@@ -102,6 +102,8 @@ extern int genFEN(char *fen, BOARD_STATE *bs);
 extern int sq64to120(int sq64);
 extern int sq120to64(int sq120);
 extern int frToSq64(int file, int rank);
+extern int getType(int piece);
+extern int getColor(int piece);
 extern void getAlgebraic(char *sqfr, int sq120);
 extern void resetBoard(BOARD_STATE *bs);
 // init.c
