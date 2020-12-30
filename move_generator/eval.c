@@ -74,3 +74,38 @@ int negaMax(BOARD_STATE *bs, int depth){
 	}
 	return max;
 }
+
+// int treeSearch(BOARD_STATE *bs, int depth){
+// 	int posEval;
+// 	genLegalMoves();
+// 	int bestScore = -100000;
+// 	while(m = getNextMove()){
+// 		makeMove(m);
+// 		posEval = eval(m);
+// 		undoMove(m);
+// 		if(posEval > bestScore) bestScore = posEval;
+// 	}
+// 	return bestScore;
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

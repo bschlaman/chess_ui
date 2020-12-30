@@ -58,7 +58,7 @@ int getType(int piece){
 
 // TODO: should I make an isOccupied()?
 int getColor(int piece){
-	// black is 7 - 12
+	// black is 7, 8, 9, 10, 11, 12
 	return piece > 6 && piece < 13;
 }
 
@@ -74,15 +74,23 @@ void saveMove(int from, int to, int moveType){
 			break;
 		}
 	}
+}
 
-	if(mode == NORMAL_MODE){
-		char sqfr[2];
+void printLegalMoves(){
+	int from, to, moveType;
+	for(int i = 0 ; legalMoves[i][2] != -1 ; i++){
+		from = legalMoves[0];
+		to = legalMoves[1];
+		moveType = legalMoves[2];
+
 		printf(YEL "      move %d: " reset, m);
+		char sqfr[2];
 		getAlgebraic(sqfr, from);
 		printf("from: %s ", sqfr);
 		getAlgebraic(sqfr, to);
 		printf("to: %s ", sqfr);
 		printf("moveType: %d\n", moveType);
+		
 	}
 }
 
@@ -115,8 +123,8 @@ int genRandomMove(BOARD_STATE *bs){
 
 int printAllMoves(BOARD_STATE *bs){
 	int i, piece, sq, total = 0;
-	int moves[27];
 	int side = bs -> side;
+	int from, to, moveType;
 
 	initLegalMoves();
 	for(i = 0 ; i < 64 ; i++){
@@ -128,6 +136,17 @@ int printAllMoves(BOARD_STATE *bs){
 		}
 	}
 	printf(BLU "total moves in pos: " reset "%d\n", total);
+
+	// TODO: reorganize printing functions
+	// if(mode == NORMAL_MODE){
+	// 	printf(YEL "      move %d: " reset, m);
+	// 	char sqfr[2];
+	// 	getAlgebraic(sqfr, from);
+	// 	printf("from: %s ", sqfr);
+	// 	getAlgebraic(sqfr, to);
+	// 	printf("to: %s ", sqfr);
+	// 	printf("moveType: %d\n", moveType);
+	// }
 }
 
 // given a color and board, is that side in check?
@@ -412,14 +431,14 @@ void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 
 int parseArgs(char *inputFEN, int argc, char *argv[]){
 	int c;
-  while((c = getopt(argc, argv, "snf:")) != -1){
+  while((c = getopt(argc, argv, "srf:")) != -1){
 		switch(c){
 			case 'f':
 				strcpy(inputFEN, optarg);
 				return FEN_MODE;
 				break;
 			case 'n':
-				return NODE_MODE;
+				return RAND_MODE;
 				break;
 			case 's':
 				return SEARCH_MODE;
@@ -455,7 +474,7 @@ int main(int argc, char *argv[]){
 			break;
 		case FEN_MODE:
 			break;
-		case NODE_MODE:
+		case RAND_MODE:
 			break;
 		case SEARCH_MODE:
 			break;
@@ -465,12 +484,12 @@ int main(int argc, char *argv[]){
 	}
 
 	// TODO: put this inside the switch block
-	// NORMAL_MODE
+	// NORMAL_MODE - print out all legal moves of a pos
 	if(mode == NORMAL_MODE){
 		printf("Checking board initialization...\n\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
-		// char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
-		char testFEN[] = "R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1";
+		// char testFEN[] = "R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1";
+		char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -";
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
@@ -486,10 +505,9 @@ int main(int argc, char *argv[]){
 		genFEN(outputFEN, bs);
 		printf("%s\n", outputFEN);
 	}
-	else if (mode == NODE_MODE){
+	else if (mode == RAND_MODE){
 		printf("Checking board initialization...\n\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
-		// char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
 		char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
 		parseFEN(testFEN, bs);
 
