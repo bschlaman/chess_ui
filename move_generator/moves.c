@@ -91,15 +91,6 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 		case 13:
 		case 14:
 		case 15:
-			// promotion
-			// TODO: obviously finish this logic for all promo types
-			if(isPawn[board[to]] && ((sq120to64(to)>=0&&sq120to64(to)<=7)||(sq120to64(to)>=56&&sq120to64(to)<=63))){
-				if(getColor(board[to])){
-					board[to] = bQ;
-				} else {
-					board[to] = wQ;
-				}
-			}
 		break;
 		default:
 			printf(RED "Error with moveType on makeMove\n" reset);
@@ -129,6 +120,16 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 		} else {
 			ASSERT(piece == wK);
 			bs -> castlePermission &= 3;
+		}
+	}
+	// promotion
+	// TODO: obviously finish this logic for all promo types
+	// TODO: having this here will break undo
+	if(isPawn[board[from]] && ((sq120to64(to)>=0&&sq120to64(to)<=7)||(sq120to64(to)>=56&&sq120to64(to)<=63))){
+		if(getColor(board[from])){
+			board[from] = bQ;
+		} else {
+			board[from] = wQ;
 		}
 	}
 

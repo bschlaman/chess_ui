@@ -75,7 +75,7 @@ void saveMove(int from, int to, int moveType){
 		}
 	}
 
-	if(mode != FEN_MODE && mode != NODE_MODE){
+	if(mode == NORMAL_MODE){
 		char sqfr[2];
 		printf(YEL "      move %d: " reset, m);
 		getAlgebraic(sqfr, from);
@@ -86,9 +86,9 @@ void saveMove(int from, int to, int moveType){
 	}
 }
 
-int genRandomMove(BOARD_STATE *bs){
-	int moves[27];
-	int i, piece, sq, total = 0, side;
+int genLegalMoves(BOARD_STATE *bs){
+	int i, total = 0;
+	int sq, piece, side;
 
 	initLegalMoves();
 	for(i = 0 ; i < 64 ; i++){
@@ -99,28 +99,16 @@ int genRandomMove(BOARD_STATE *bs){
 			total += pieceMoves(bs, piece, sq);
 		}
 	}
+	return total;
+}
 
-	// this is some code that prints out a subset of legal moves
-	// char sqfrFrom[2];
-	// char sqfrTo[2];
-	// for(int m  = 0 ; m < total ; m++){
-	// 	getAlgebraic(sqfrFrom, legalMoves[m][0]);
-	// 	getAlgebraic(sqfrTo, legalMoves[m][1]);
-	// 	if(legalMoves[m][0] == 95 || legalMoves[m][0] == 25){
-	// 		printf(CYN "legalMoves[%d]: %s -> %s\n" reset, m, sqfrFrom, sqfrTo);
-	// 	}
-	// }
-	
+int genRandomMove(BOARD_STATE *bs){
+	int total = genLegalMoves(bs);
 	if(total > 0){
 		int r = rand() % total;
-		// TMP: testing castling
-		// while(legalMoves[r][0] != 56 && legalMoves[r][0] != 87){ // && legalMoves[r][0] != 25){
-		// while(legalMoves[r][0] != 67 && legalMoves[r][0] != 32){ // && legalMoves[r][0] != 25){
-		// 	r = rand() % total;
-		// }
-		// makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
 		return r;
 	} else {
+		// TODO: stalemate
 		return -1;
 	}
 }
@@ -398,6 +386,7 @@ void printBoard(BOARD_STATE *bs, int option){
 		printf(BLU "castlePerms: " reset "%s\n", cperms);
 		printf(BLU "white in check: " reset "%s\n", isCheck(bs, WHITE) ? "true" : "false");
 		printf(BLU "black in check: " reset "%s\n", isCheck(bs, BLACK) ? "true" : "false");
+		printf(BLU "eval: " reset "%d\n", eval(bs));
 		// printf(CYN "ms -> fromto: %d\n" reset, ms -> fromto);
 		// printf(CYN "ms -> enPas: %d\n" reset, ms -> enPas);
 		// printf(CYN "ms -> castlePerm: %d\n" reset, ms -> castlePermission);
@@ -423,7 +412,7 @@ void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
 
 int parseArgs(char *inputFEN, int argc, char *argv[]){
 	int c;
-  while((c = getopt(argc, argv, "nf:")) != -1){
+  while((c = getopt(argc, argv, "snf:")) != -1){
 		switch(c){
 			case 'f':
 				strcpy(inputFEN, optarg);
@@ -431,6 +420,9 @@ int parseArgs(char *inputFEN, int argc, char *argv[]){
 				break;
 			case 'n':
 				return NODE_MODE;
+				break;
+			case 's':
+				return SEARCH_MODE;
 				break;
 			case '?':
 				if(optopt == 'f')
@@ -465,6 +457,8 @@ int main(int argc, char *argv[]){
 			break;
 		case NODE_MODE:
 			break;
+		case SEARCH_MODE:
+			break;
 		default:
 			printf(RED "ERROR: invalid mode: %d\n" reset, mode);
 			exit(0);
@@ -481,11 +475,14 @@ int main(int argc, char *argv[]){
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
 		printAllMoves(bs);
+		genFEN(outputFEN, bs);
+		printf("%s\n", outputFEN);
 	}
 	// FEN_MODE
 	else if(mode == FEN_MODE){
 		parseFEN(inputFEN, bs);
 		int r = genRandomMove(bs);
+		makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
 		genFEN(outputFEN, bs);
 		printf("%s\n", outputFEN);
 	}
@@ -519,5 +516,13 @@ int main(int argc, char *argv[]){
 		}
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
+	}
+	else if(mode == SEARCH_MODE){
+		printf("Checking board initialization...\n\n");
+		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
+		char testFEN[] = "rnb1kbnr/ppp1p1pp/8/3p1p2/1q3P1B/2P1P3/PP1P2PP/RNBQK1NR w KQkq -";
+		parseFEN(testFEN, bs);
+		int max = negaMax(bs, 2);
+		printf(CYN "max: %d\n" reset, max);
 	}
 }

@@ -31,9 +31,11 @@ int parseArgs(char *inputFEN, int argc, char *argv[]){
 	return NORMAL_MODE;
 }
 
-int randInt(int lb, int ub){
+void initRand(){
 	time_t t;
 	srand((unsigned) time(&t));
+}
+int randInt(int lb, int ub){
 	return rand() % (ub - lb + 1) + lb;
 }
 
@@ -95,19 +97,64 @@ BOARD* init(){
 	return b;
 }
 
+int eval(){
+	return randInt(-5, 5);
+}
+
+int legalMoves[1000][3];
+int genLegalMoves(){
+	int i, total = 0;
+
+	// init legalMoves
+	for(int m  = 0 ; m < 1000 ; m++){
+		legalMoves[m][2] = 0;
+	}
+	total = randInt(2,2);
+	for(i = 0 ; i < total ; i++){
+		legalMoves[i][2] = 3;
+	}
+	return total;
+}
+
+void printArr(int arr[][3]){
+	for(int i = 0 ; i < 5 ; i++){
+		printf(YEL "arr[i][2]: %d\n" reset, arr[i][2]);
+	}
+}
+
+int negaMax(int depth){
+	if(depth == 0) return eval(NULL);
+	int max = -100000, score = 0;
+	int numMoves = genLegalMoves();
+	printf(CYN "numMoves: %d\n" reset, numMoves);
+
+	int cpy[1000][3];
+	memcpy(cpy, legalMoves, numMoves * sizeof(cpy[0]));
+
+	//printArr(legalMoves);
+	printf(RED "------\n" reset);
+	//printArr(cpy);
+
+	int i = 0;
+	while(cpy[i][2] != 0){
+		// makeMove(bs, legalMoves[i][0], legalMoves[i][1], legalMoves[i][2]);
+		score = -1 * negaMax(depth - 1);
+		// undoMove();
+		if(score > max) max = score;
+		i++;
+	}
+	return max;
+}
+
 int main(int argc, char *argv[]){
+	initRand();
 	// arg stuff
 	char inputFEN[99];
 	int res = parseArgs(inputFEN, argc, argv);
 
-	// node stuff (12/28)
-	nodeTest();
-
-	unsigned short int fromto = 65534;
-	BOARD *b = init();
-	STATE s = b -> hist[1];
-	s.data = 5;
-	printf(CYN "s.data: %d\n" reset, s.data);
+	// search stuff
+	int max = negaMax(3);
+	printf(CYN "max: %d\n" reset, max);
 
 	return 0;
 }

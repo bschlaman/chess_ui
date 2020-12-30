@@ -7,6 +7,9 @@ fen:
 node:
 	cc main.c fen.c data.c init.c moves.c eval.c -o out
 	./out -n
+search:
+	cc main.c fen.c data.c init.c moves.c eval.c -o out
+	./out -s
 only:
 	cc main.c fen.c data.c init.c moves.c eval.c -o out
 test:

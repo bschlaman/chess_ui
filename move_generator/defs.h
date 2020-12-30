@@ -79,7 +79,7 @@ typedef struct {
 } BOARD_STATE;
 
 // global mode
-enum { NORMAL_MODE, FEN_MODE, NODE_MODE };
+enum { NORMAL_MODE, FEN_MODE, NODE_MODE, SEARCH_MODE };
 // printBoard opts
 enum { OPT_64_BOARD, OPT_BOARD_STATE, OPT_120_BOARD };
 
@@ -105,6 +105,7 @@ extern int getType(int piece);
 extern int getColor(int piece);
 extern void getAlgebraic(char *sqfr, int sq120);
 extern void resetBoard(BOARD_STATE *bs);
+extern int genLegalMoves(BOARD_STATE *bs);
 // init.c
 extern void initRand();
 extern BOARD_STATE* initGame();
@@ -112,3 +113,7 @@ extern void initLegalMoves();
 // moves.c
 extern void makeMove(BOARD_STATE *bs, int from, int to, int moveType);
 extern void undoMove(BOARD_STATE *bs);
+// eval.c
+extern int randInt(int lb, int ub);
+extern int negaMax(BOARD_STATE *bs, int depth);
+extern int eval(BOARD_STATE *bs);
