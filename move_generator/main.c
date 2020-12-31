@@ -10,8 +10,7 @@
 void printBoard(BOARD_STATE *bs, int options);
 int pieceMoves(BOARD_STATE *bs, int piece, int sq);
 int genRandomMove(BOARD_STATE *bs);
-int printAllMoves(BOARD_STATE *bs);
-void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq);
+void printAllMoves(BOARD_STATE *bs);
 void saveMove(int from, int to, int moveType);
 int isCheck(BOARD_STATE *bs, int color);
 int newBoardCheck(int *board, int sq, int cs);
@@ -64,45 +63,26 @@ int getColor(int piece){
 
 void saveMove(int from, int to, int moveType){
 	// TODO: remove this, temporary workaround
-	// extern int[1000][3] legalMoves;
 	int m;
 	for(m = 0 ; m < 1000 ; m++){
 		if(legalMoves[m][2] == -1){
-			legalMoves[m][0] = from;		
-			legalMoves[m][1] = to;		
+			legalMoves[m][0] = from;
+			legalMoves[m][1] = to;
 			legalMoves[m][2] = moveType;
 			break;
 		}
 	}
 }
 
-void printLegalMoves(){
-	int from, to, moveType;
-	for(int i = 0 ; legalMoves[i][2] != -1 ; i++){
-		from = legalMoves[0];
-		to = legalMoves[1];
-		moveType = legalMoves[2];
-
-		printf(YEL "      move %d: " reset, m);
-		char sqfr[2];
-		getAlgebraic(sqfr, from);
-		printf("from: %s ", sqfr);
-		getAlgebraic(sqfr, to);
-		printf("to: %s ", sqfr);
-		printf("moveType: %d\n", moveType);
-		
-	}
-}
-
 int genLegalMoves(BOARD_STATE *bs){
 	int i, total = 0;
 	int sq, piece, side;
+	side = bs -> side;
 
 	initLegalMoves();
 	for(i = 0 ; i < 64 ; i++){
 		sq = sq64to120(i);
 		piece = bs -> board[sq];
-		side = bs -> side;
 		if(piece != EMPTY && getColor(piece) == side){
 			total += pieceMoves(bs, piece, sq);
 		}
@@ -121,32 +101,44 @@ int genRandomMove(BOARD_STATE *bs){
 	}
 }
 
-int printAllMoves(BOARD_STATE *bs){
-	int i, piece, sq, total = 0;
+// BOARD_STATE arg needed for eval
+void printLegalMoves(BOARD_STATE *bs){
+	int m, from, to, moveType;
+	char sqfr[3];
+	for(m = 0 ; legalMoves[m][2] != -1 ; m++){
+		from = legalMoves[m][0];
+		to = legalMoves[m][1];
+		moveType = legalMoves[m][2];
+
+		printf(YEL "      move %d: " reset, m);
+		getAlgebraic(sqfr, from);
+		printf("from: %s ", sqfr);
+		getAlgebraic(sqfr, to);
+		printf("to: %s ", sqfr);
+		printf("moveType: %d ", moveType);
+		// evaluate position after move is made
+		makeMove(bs, from, to, moveType);
+		printf("eval for opponent after move: %d\n", eval(bs));
+		undoMove(bs);
+	}
+}
+
+void printAllMoves(BOARD_STATE *bs){
+	int i, m, piece, sq, total = 0;
 	int side = bs -> side;
 	int from, to, moveType;
 
-	initLegalMoves();
 	for(i = 0 ; i < 64 ; i++){
+		initLegalMoves();
 		sq = sq64to120(i);
 		piece = bs -> board[sq];
 		if(piece != EMPTY && getColor(piece) == side){
 			printf(GRN " == PIECE: %c\n" reset, pieceChar[piece]);
 			total += pieceMoves(bs, piece, sq);
+			printLegalMoves(bs);
 		}
 	}
 	printf(BLU "total moves in pos: " reset "%d\n", total);
-
-	// TODO: reorganize printing functions
-	// if(mode == NORMAL_MODE){
-	// 	printf(YEL "      move %d: " reset, m);
-	// 	char sqfr[2];
-	// 	getAlgebraic(sqfr, from);
-	// 	printf("from: %s ", sqfr);
-	// 	getAlgebraic(sqfr, to);
-	// 	printf("to: %s ", sqfr);
-	// 	printf("moveType: %d\n", moveType);
-	// }
 }
 
 // given a color and board, is that side in check?
@@ -250,11 +242,11 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			cs = sq;
 			// while sq not offboard
 			while(board[cs += translation[type][d]] != OFFBOARD){
-				if(!newBoardCheck(board, sq, cs)){
-					if(board[cs] == EMPTY){
+				if(true){
+					if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){
 						saveMove(sq, cs, 0); total++;
 					} else {
-						if(getColor(piece) != getColor(board[cs])){ saveMove(sq, cs, 4); total++; }
+						if(getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){ saveMove(sq, cs, 4); total++; }
 						break;
 					}
 				}
@@ -406,27 +398,12 @@ void printBoard(BOARD_STATE *bs, int option){
 		printf(BLU "white in check: " reset "%s\n", isCheck(bs, WHITE) ? "true" : "false");
 		printf(BLU "black in check: " reset "%s\n", isCheck(bs, BLACK) ? "true" : "false");
 		printf(BLU "eval: " reset "%d\n", eval(bs));
-		// printf(CYN "ms -> fromto: %d\n" reset, ms -> fromto);
-		// printf(CYN "ms -> enPas: %d\n" reset, ms -> enPas);
-		// printf(CYN "ms -> castlePerm: %d\n" reset, ms -> castlePermission);
-		// printf(CYN "ms -> captured: %d\n" reset, ms -> capturedPiece);
+		bs -> side = !(bs -> side);
+		// TODO: the num legal moves might be innacurate
+		// if just switching sides due to en passant?
+		printf(BLU "eval for opponent: " reset "%d\n", eval(bs));
+		bs -> side = !(bs -> side);
 	}
-}
-
-void testPieceMoves(int *moves, BOARD_STATE *bs, int piece, int sq){
-	int i;
-	// create a dummy board to see candidate squares
-	BOARD_STATE tmpBoard[1];
-	resetBoard(tmpBoard);
-	tmpBoard -> board[sq] = piece;
-
-	pieceMoves(tmpBoard, piece, sq);
-	printf(YEL " == piece: %c == \n" reset, pieceChar[piece]);
-	for(i = 0 ; moves[i] != -1 ; i++){
-		tmpBoard -> board[moves[i]] = CANDIDATESQ;
-	}
-
-	printBoard(tmpBoard, 0);
 }
 
 int parseArgs(char *inputFEN, int argc, char *argv[]){
@@ -488,8 +465,9 @@ int main(int argc, char *argv[]){
 	if(mode == NORMAL_MODE){
 		printf("Checking board initialization...\n\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
-		// char testFEN[] = "R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1";
-		char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -";
+		// char testFEN[] = "R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1"; // max legalMoves
+		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
+		char testFEN[] = "4qr1k/6p1/4p2p/p2pP3/1p6/1PrB3P/P2R1PPb/3R2K1 w - -"; // debug
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
@@ -538,9 +516,26 @@ int main(int argc, char *argv[]){
 	else if(mode == SEARCH_MODE){
 		printf("Checking board initialization...\n\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
-		char testFEN[] = "rnb1kbnr/ppp1p1pp/8/3p1p2/1q3P1B/2P1P3/PP1P2PP/RNBQK1NR w KQkq -";
+		// char testFEN[] = "rnb1kbnr/ppp1p1pp/8/3p1p2/1q3P1B/2P1P3/PP1P2PP/RNBQK1NR w KQkq -";
+		char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
 		parseFEN(testFEN, bs);
-		int max = negaMax(bs, 2);
-		printf(CYN "max: %d\n" reset, max);
+		while(true){
+			getchar();
+			printBoard(bs, OPT_64_BOARD);
+			printBoard(bs, OPT_BOARD_STATE);
+			int total = genLegalMoves(bs);
+			printLegalMoves(bs);
+			printf(BLU "total moves in pos: " reset "%d\n", total);
+			int best = treeSearch(bs, 1);
+			printf(BLU "best score: " reset "%d\n", best);
+			getchar();
+			for(int m = 0 ; legalMoves[m][2] != -1 ; m++){
+				if(legalMoves[m][3] == best){
+					printf(CYN "Making move: %d\n", m);
+					makeMove(bs, legalMoves[m][0], legalMoves[m][1], legalMoves[m][2]);
+					break;
+				}
+			}
+		}
 	}
 }

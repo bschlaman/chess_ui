@@ -137,7 +137,8 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 	board[to] = board[from];
 	board[from] = EMPTY;
 	// is this the best way to switch sides?
-	bs -> side = getColor(board[to]) ? WHITE : BLACK;
+	bs -> side = !(bs -> side);
+	ASSERT(bs -> side == WHITE || bs -> side == BLACK);
 }
 
 void undoMove(BOARD_STATE *bs){
@@ -159,7 +160,8 @@ void undoMove(BOARD_STATE *bs){
 	board[from] = board[to];
 	board[to] = EMPTY;
 	// is this the best way to switch sides?
-	bs -> side = getColor(board[to]) ? WHITE : BLACK;
+	bs -> side = !(bs -> side);
+	ASSERT(bs -> side == WHITE || bs -> side == BLACK);
 
 	// 3) restore irreversible
 	// 3.1) restore non-board stuff

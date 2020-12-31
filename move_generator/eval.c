@@ -14,7 +14,13 @@ int eval(BOARD_STATE *bs){
 	int knightWeight = 3;
 	int pawnWeight = 1;
 
-	float mobilityWeight = 0.1;
+	// float mobilityWeight = 0.1;
+	int mobilityWeight = 1;
+	// TODO: not sure if memcpy and switching sides is right here
+	int legalMovesBkp[1000][4];
+	memcpy(legalMovesBkp, legalMoves, 1000);
+	int numLegalMoves = genLegalMoves(bs);
+	memcpy(legalMoves, legalMovesBkp, 1000);
 
 	int *board = bs -> board;
 	int kings = 0;
@@ -24,20 +30,16 @@ int eval(BOARD_STATE *bs){
 	int knights = 0;
 	int pawns = 0;
 	int piece;
+	int factor;
 	for(int i = 0 ; i < 64 ; i++){
 		piece = board[sq64to120(i)];
-		if(piece == wK) kings++;
-		if(piece == wQ) queens++;
-		if(piece == wR) rooks++;
-		if(piece == wB) bishops++;
-		if(piece == wN) knights++;
-		if(piece == wP) pawns++;
-		if(piece == bK) kings--;
-		if(piece == bQ) queens--;
-		if(piece == bR) rooks--;
-		if(piece == bB) bishops--;
-		if(piece == bN) knights--;
-		if(piece == bP) pawns--;
+		factor = 1 - 2 * !(bs -> side ^ getColor(piece));
+		if(piece == wK || piece == bK) kings += factor;
+		if(piece == wQ || piece == bQ) queens += factor;
+		if(piece == wR || piece == bR) rooks += factor;
+		if(piece == wB || piece == bB) bishops += factor;
+		if(piece == wN || piece == bN) knights += factor;
+		if(piece == wP || piece == bP) pawns += factor;
 	}
 	materialEval += kings * kingWeight;
 	materialEval += queens * queenWeight;
@@ -45,7 +47,13 @@ int eval(BOARD_STATE *bs){
 	materialEval += bishops * bishopWeight;
 	materialEval += knights * knightWeight;
 	materialEval += pawns * pawnWeight;
-	return materialEval;
+	mobilityEval = numLegalMoves * mobilityWeight;
+	// avoid checkmate
+	// TODO: make this better obviously
+	if(numLegalMoves == 0){
+		return -100000000;
+	}
+	return materialEval + mobilityEval;
 }
 
 int randInt(int lb, int ub){
@@ -57,7 +65,7 @@ int negaMax(BOARD_STATE *bs, int depth){
 	int max = -100000, score;
 
 	genLegalMoves(bs);
-	int cpy[1000][3];
+	int cpy[1000][4];
 	for(int m = 0 ; m < 1000 ; m++){
 		cpy[m][2] = -1;
 	}
@@ -75,18 +83,29 @@ int negaMax(BOARD_STATE *bs, int depth){
 	return max;
 }
 
-// int treeSearch(BOARD_STATE *bs, int depth){
-// 	int posEval;
-// 	genLegalMoves();
-// 	int bestScore = -100000;
-// 	while(m = getNextMove()){
-// 		makeMove(m);
-// 		posEval = eval(m);
-// 		undoMove(m);
-// 		if(posEval > bestScore) bestScore = posEval;
-// 	}
-// 	return bestScore;
-// }
+unsigned short int getNextMove(){
+	return NULL;
+}
+
+int treeSearch(BOARD_STATE *bs, int depth){
+	int m, from, to, moveType;
+	int posEval;
+	char sqfr[3];
+	genLegalMoves(bs);
+	int bestScore = -100000;
+	for(m = 0 ; legalMoves[m][2] != -1 ; m++){
+		from = legalMoves[m][0];
+		to = legalMoves[m][1];
+		moveType = legalMoves[m][2];
+
+		makeMove(bs, from, to, moveType);
+		posEval = -1 * eval(bs);
+		undoMove(bs);
+		legalMoves[m][3] = posEval;
+		if(posEval > bestScore) bestScore = posEval;
+	}
+	return bestScore;
+}
 
 
 

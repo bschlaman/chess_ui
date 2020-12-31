@@ -56,8 +56,10 @@ enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, CANDIDATESQ };
 // 15	1	1	1	1	queen-promo capture
 enum { PROMOTION = 8, CAPTURE = 4, SPECIAL1 = 2, SPECIAL2 = 1 };
 
+typedef unsigned short int move;
+
 typedef struct {
-	unsigned short int fromto;
+	move fromto;
 	int enPas;
 	int castlePermission;
 	int capturedPiece;
@@ -78,6 +80,7 @@ typedef struct {
 	MOVE_STACK history[200];
 } BOARD_STATE;
 
+
 // global mode
 enum { NORMAL_MODE, FEN_MODE, RAND_MODE, SEARCH_MODE };
 // printBoard opts
@@ -92,7 +95,7 @@ extern const int isPawn[];
 extern const int isKing[];
 extern const int OFFBOARD;
 // TODO: remove this, temporary workaround
-extern int legalMoves[1000][3];
+extern int legalMoves[1000][4];
 /* FUNCTIONS */
 // fen.c
 extern int parseFEN(char *fen, BOARD_STATE *bs);
@@ -117,3 +120,4 @@ extern void undoMove(BOARD_STATE *bs);
 extern int randInt(int lb, int ub);
 extern int negaMax(BOARD_STATE *bs, int depth);
 extern int eval(BOARD_STATE *bs);
+extern int treeSearch(BOARD_STATE *bs, int depth);

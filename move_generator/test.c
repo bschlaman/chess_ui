@@ -97,12 +97,12 @@ BOARD* init(){
 	return b;
 }
 
-int eval(){
+int testEval(){
 	return randInt(-5, 5);
 }
 
 int legalMoves[1000][3];
-int genLegalMoves(){
+int testGenLegalMoves(){
 	int i, total = 0;
 
 	// init legalMoves
@@ -122,10 +122,10 @@ void printArr(int arr[][3]){
 	}
 }
 
-int negaMax(int depth){
-	if(depth == 0) return eval(NULL);
+int miniMax(int depth){
+	if(depth == 0) return testEval(NULL);
 	int max = -100000, score = 0;
-	int numMoves = genLegalMoves();
+	int numMoves = testGenLegalMoves();
 	printf(CYN "numMoves: %d\n" reset, numMoves);
 
 	int cpy[1000][3];
@@ -138,7 +138,7 @@ int negaMax(int depth){
 	int i = 0;
 	while(cpy[i][2] != 0){
 		// makeMove(bs, legalMoves[i][0], legalMoves[i][1], legalMoves[i][2]);
-		score = -1 * negaMax(depth - 1);
+		score = -1 * miniMax(depth - 1);
 		// undoMove();
 		if(score > max) max = score;
 		i++;
@@ -152,9 +152,8 @@ int main(int argc, char *argv[]){
 	char inputFEN[99];
 	int res = parseArgs(inputFEN, argc, argv);
 
-	// search stuff
-	int max = negaMax(3);
-	printf(CYN "max: %d\n" reset, max);
+	printf(CYN "test: %c\n" reset, 0 - '0');
+	printf(CYN "test: %c\n" reset, 0 + '0');
 
 	return 0;
 }

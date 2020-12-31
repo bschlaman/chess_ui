@@ -6,6 +6,6 @@ const int isPawn[] = {false, true, false, false, false, false, false, true, fals
 const int isKing[] = {false, false, false, false, false, false, true, false, false, false, false, false, true, false};
 const int OFFBOARD = -1;
 
-int legalMoves[1000][3];
+int legalMoves[1000][4];
 int mode = 0;
 
