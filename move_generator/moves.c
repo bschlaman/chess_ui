@@ -31,7 +31,7 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 
 	// 1) update the move stack with info about current pos
 	MOVE_STACK *ms = &(bs -> history[bs -> ply]);
-	int capturedPiece = bs -> board[to];
+	int capturedPiece;
 	unsigned short int fromto = 0;
 	fromto |= sq120to64(from) << 10;
 	fromto |= sq120to64(to) << 4;
@@ -39,8 +39,10 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 	ms -> fromto = fromto;
 	ms -> enPas = bs -> enPas;
 	ms -> castlePermission = bs -> castlePermission;
+	if(moveType == 5){
+		capturedPiece = bs -> board[to + (1 - 2 * !getColor(capturedPiece)) * 10];
+	} else { capturedPiece = bs -> board[to]; }
 	ms -> capturedPiece = capturedPiece;
-
 	// 2) increment ply (index)
 	bs -> ply++;
 

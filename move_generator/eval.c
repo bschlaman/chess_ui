@@ -3,7 +3,10 @@
 #include "defs.h"
 #include "colors.h"
 
+int mobility(BOARD_STATE *bs);
+
 int eval(BOARD_STATE *bs){
+	// printf(CYN "vvv " reset);
 	int materialEval = 0;
 	int mobilityEval = 0;
 
@@ -16,11 +19,7 @@ int eval(BOARD_STATE *bs){
 
 	// float mobilityWeight = 0.1;
 	int mobilityWeight = 1;
-	// TODO: not sure if memcpy and switching sides is right here
-	int legalMovesBkp[1000][4];
-	memcpy(legalMovesBkp, legalMoves, 1000);
-	int numLegalMoves = genLegalMoves(bs);
-	memcpy(legalMoves, legalMovesBkp, 1000);
+	int numLegalMoves = mobility(bs);
 
 	int *board = bs -> board;
 	int kings = 0;
@@ -50,10 +49,78 @@ int eval(BOARD_STATE *bs){
 	mobilityEval = numLegalMoves * mobilityWeight;
 	// avoid checkmate
 	// TODO: make this better obviously
+	// if(bs -> side == BLACK){
+	// 	printf(RED "%d\n" reset, numLegalMoves);
+	// 	printf(RED "%d\n" reset, materialEval);
+	// } else {
+	// 	printf(YEL "%d\n" reset, numLegalMoves);
+	// 	printf(YEL "%d\n" reset, materialEval);
+	// }
 	if(numLegalMoves == 0){
 		return -100000000;
 	}
-	return materialEval + mobilityEval;
+	return materialEval;
+}
+
+// TODO: this is approximate
+// doesn't count castling, en passant capture
+int mobility(BOARD_STATE *bs){
+	int i, total = 0, sq, cs, cs2, piece;
+	int d, type;
+	int *board = bs -> board;
+	int side = bs -> side;
+	int cperm = bs -> castlePermission;
+	
+	for(i = 0 ; i < 64 ; i++){
+		sq = sq64to120(i);
+		piece = board[sq64to120(i)];	
+		if(piece != EMPTY && getColor(piece) == side){
+			// pieces
+			if(!isPawn[piece]){
+				type = getType(piece);
+				for(d = 0 ; d < numDirections[type] ; d++){
+					cs = sq;
+					while(board[cs += translation[type][d]] != OFFBOARD){
+						// if the piece is the king of opposite color
+						// if not empty, either break or its the king
+						if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){
+							total++;
+						} else {
+							if(side != getColor(board[cs])){ total++; }
+							break;
+						}
+						if(type == 0 || type == 4){ break; }
+					}
+				}
+			} else {
+				// pawns
+
+				// forward 1
+				// mapping {0,1} -> {-1,1} -> {-10,10}
+				cs = sq - (1 - 2 * getColor(piece)) * 10;
+				if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){ total++; }
+				// forward 2
+				if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
+					cs = sq - (1 - 2 * getColor(piece)) * 20;
+					cs2 = sq - (1 - 2 * getColor(piece)) * 10;
+					if(board[cs] == EMPTY && board[cs2] == EMPTY && !newBoardCheck(board, sq, cs)){
+						total++;
+					}
+				}
+
+				// captures
+				cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
+				if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
+					total++;
+				}
+				cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
+				if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
+					total++;
+				}
+			}
+		}
+	}
+	return total;
 }
 
 int randInt(int lb, int ub){
@@ -83,14 +150,10 @@ int negaMax(BOARD_STATE *bs, int depth){
 	return max;
 }
 
-unsigned short int getNextMove(){
-	return NULL;
-}
-
 int treeSearch(BOARD_STATE *bs, int depth){
+	if(depth == 0){ return eval(bs); }
 	int m, from, to, moveType;
 	int posEval;
-	char sqfr[3];
 	genLegalMoves(bs);
 	int bestScore = -100000;
 	for(m = 0 ; legalMoves[m][2] != -1 ; m++){
@@ -98,8 +161,10 @@ int treeSearch(BOARD_STATE *bs, int depth){
 		to = legalMoves[m][1];
 		moveType = legalMoves[m][2];
 
+		// printf("response: ");
+		// printMove(m, legalMoves[m][0], legalMoves[m][1], legalMoves[m][2]);
 		makeMove(bs, from, to, moveType);
-		posEval = -1 * eval(bs);
+		posEval = 1 * treeSearch(bs, depth - 1);
 		undoMove(bs);
 		legalMoves[m][3] = posEval;
 		if(posEval > bestScore) bestScore = posEval;

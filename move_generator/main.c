@@ -12,8 +12,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq);
 int genRandomMove(BOARD_STATE *bs);
 void printAllMoves(BOARD_STATE *bs);
 void saveMove(int from, int to, int moveType);
-int isCheck(BOARD_STATE *bs, int color);
-int newBoardCheck(int *board, int sq, int cs);
+int isCheck(int *board, int color);
 // TODO: somehow there's an issue with the global var
 
 int sq64to120(int sq64){
@@ -101,6 +100,16 @@ int genRandomMove(BOARD_STATE *bs){
 	}
 }
 
+void printMove(int m, int from, int to, int moveType){
+	char sqfr[3];
+	printf(YEL "      move %d: " reset, m);
+	getAlgebraic(sqfr, from);
+	printf("from: %s ", sqfr);
+	getAlgebraic(sqfr, to);
+	printf("to: %s ", sqfr);
+	printf("moveType: %d\n", moveType);
+}
+
 // BOARD_STATE arg needed for eval
 void printLegalMoves(BOARD_STATE *bs){
 	int m, from, to, moveType;
@@ -143,26 +152,18 @@ void printAllMoves(BOARD_STATE *bs){
 
 // given a color and board, is that side in check?
 // TODO: wow why am I copy pasting my move gen logic
-int isCheck(BOARD_STATE *bs, int color){
-	int i, piece, cs, sq, moves[27];
-	int *board = bs -> board;
-	int numDirections[] = {8, 4, 4, 8, 8};
-	int translation[][8] = {
-		{-21, -12, 8, 19, 21, 12, -8, -19}, // knights 0
-		{-11, 9, 11, -9}, // bishops 1
-		{-10, -1, 10, 1}, // rooks 2
-		{-11, 9, 11, -9, -10, -1, 10, 1}, // queens 3
-		{-11, 9, 11, -9, -10, -1, 10, 1}  // kings 4
-	};
+// TODO: this is the biggest slowdown in the program
+// likely since I am looking up the entire board again
+int isCheck(int *board, int color){
+	int i, piece, cs, sq, d, type;
 
 	for(i = 0 ; i < 64 ; i++){
 		sq = sq64to120(i);
-		piece = bs -> board[sq64to120(i)];	
+		piece = board[sq64to120(i)];	
 		if(piece != EMPTY && getColor(piece) != color){
-
 			// pieces
 			if(!isPawn[piece]){
-				int d, type = getType(piece);
+				type = getType(piece);
 				for(d = 0 ; d < numDirections[type] ; d++){
 					cs = sq;
 					while(board[cs += translation[type][d]] != OFFBOARD){
@@ -200,14 +201,14 @@ int enPasCorrectColor(int enPas, int side){
 int newBoardCheck(int *board, int sq, int cs){
 	// TODO: a bit clunky passing in a board and then passing a BOARD_STATE to isCheck()
 	// hypothetical board state
-	BOARD_STATE *hbs = malloc(sizeof(BOARD_STATE));;
-	resetBoard(hbs);
-	for(int i = 0 ; i < 120 ; i++){
-		hbs -> board[i] = board[i];
-	}
-	hbs -> board[sq] = EMPTY;
-	hbs -> board[cs] = board[sq];
-	return isCheck(hbs, getColor(board[sq]));
+	int check = false;
+	int capturedPiece = board[cs];
+	board[cs] = board[sq];
+	board[sq] = EMPTY;
+	check = isCheck(board, getColor(board[cs]));
+	board[sq] = board[cs];
+	board[cs] = capturedPiece;
+	return check;
 }
 
 int pieceMoves(BOARD_STATE *bs, int piece, int sq){
@@ -215,40 +216,30 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 	// and move in particular "directions"
 	// until the piece is OFFBOARD
 	// cs = candidate square
+	// cs2 = candidate square 2 (used for double pawn push)
 	// note that newBoardCheck() is called every time there is a new cs
 	// This means that I check it prematurely in some cases
 	// but it's cleaner for now
 	// TODO: should I get color from the BOARD_STATE?
-	int i = 0, cs = sq, enPasCaptureFromSq = OFFBOARD, total = 0;
+	int i = 0, cs = sq, cs2, enPasCaptureFromSq = OFFBOARD, total = 0, d, type;
 	int *board = bs -> board;
-
-	int numDirections[] = {8, 4, 4, 8, 8};
-	int translation[][8] = {
-		{-21, -12, 8, 19, 21, 12, -8, -19}, // knights 0
-		{-11, 9, 11, -9}, // bishops 1
-		{-10, -1, 10, 1}, // rooks 2
-		{-11, 9, 11, -9, -10, -1, 10, 1}, // queens 3
-		{-11, 9, 11, -9, -10, -1, 10, 1}  // kings 4
-	};
 
 	ASSERT(sq >= 0 && sq <= 120 && board[sq] != OFFBOARD);
 
 	// move generation
 	if(!isPawn[piece]){
 		// type = proper index for translation[][]
-		int d, type = getType(piece);
+		type = getType(piece);
 		// for each direction
 		for(d = 0 ; d < numDirections[type] ; d++){
 			cs = sq;
 			// while sq not offboard
 			while(board[cs += translation[type][d]] != OFFBOARD){
-				if(true){
-					if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){
-						saveMove(sq, cs, 0); total++;
-					} else {
-						if(getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){ saveMove(sq, cs, 4); total++; }
-						break;
-					}
+				if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){
+					saveMove(sq, cs, 0); total++;
+				} else {
+					if(getColor(piece) != getColor(board[cs])){ saveMove(sq, cs, 4); total++; }
+					break;
 				}
 				// stop if piece is a knight or king
 				if(type == 0 || type == 4){ break; }
@@ -264,7 +255,8 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		// forward 2
 		if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
 			cs = sq - (1 - 2 * getColor(piece)) * 20;
-			if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){
+			cs2 = sq - (1 - 2 * getColor(piece)) * 10;
+			if(board[cs] == EMPTY && board[cs2] == EMPTY && !newBoardCheck(board, sq, cs)){
 				saveMove(sq, cs, 1); total++;
 			}
 		}
@@ -395,8 +387,8 @@ void printBoard(BOARD_STATE *bs, int option){
 		getCastlePermissions(cperms, bs -> castlePermission);
 		printf(BLU "en passant sq: " reset "%s\n", sqAN);
 		printf(BLU "castlePerms: " reset "%s\n", cperms);
-		printf(BLU "white in check: " reset "%s\n", isCheck(bs, WHITE) ? "true" : "false");
-		printf(BLU "black in check: " reset "%s\n", isCheck(bs, BLACK) ? "true" : "false");
+		printf(BLU "white in check: " reset "%s\n", isCheck(bs -> board, WHITE) ? "true" : "false");
+		printf(BLU "black in check: " reset "%s\n", isCheck(bs -> board, BLACK) ? "true" : "false");
 		printf(BLU "eval: " reset "%d\n", eval(bs));
 		bs -> side = !(bs -> side);
 		// TODO: the num legal moves might be innacurate
@@ -467,7 +459,8 @@ int main(int argc, char *argv[]){
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		// char testFEN[] = "R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1"; // max legalMoves
 		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
-		char testFEN[] = "4qr1k/6p1/4p2p/p2pP3/1p6/1PrB3P/P2R1PPb/3R2K1 w - -"; // debug
+		// char testFEN[] = "4qr1k/6p1/4p2p/p2pP3/1p6/1PrB3P/P2R1PPb/3R2K1 w - -"; // debug
+		char testFEN[] = "4qr1k/6p1/4p2p/p2pP1b1/1p4Q1/1PrB3P/P2R1PP1/3R2K1 b - -"; // debug
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
@@ -477,9 +470,22 @@ int main(int argc, char *argv[]){
 	}
 	// FEN_MODE
 	else if(mode == FEN_MODE){
+		int myMoves[1000][4];
 		parseFEN(inputFEN, bs);
-		int r = genRandomMove(bs);
-		makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
+		int total = genLegalMoves(bs);
+		memcpy(myMoves, legalMoves, 1000);
+		int best = -11111;
+		int b = -1;
+		for(int m = 0 ; myMoves[m][2] != -1 ; m++){
+			makeMove(bs, myMoves[m][0], myMoves[m][1], myMoves[m][2]);
+			myMoves[m][3] = -1 * treeSearch(bs, 1);
+			undoMove(bs);
+			if(myMoves[m][3] > best){
+				best = myMoves[m][3];
+				b = m;
+			}
+		}
+		makeMove(bs, myMoves[b][0], myMoves[b][1], myMoves[b][2]);
 		genFEN(outputFEN, bs);
 		printf("%s\n", outputFEN);
 	}
@@ -519,23 +525,26 @@ int main(int argc, char *argv[]){
 		// char testFEN[] = "rnb1kbnr/ppp1p1pp/8/3p1p2/1q3P1B/2P1P3/PP1P2PP/RNBQK1NR w KQkq -";
 		char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
 		parseFEN(testFEN, bs);
-		while(true){
-			getchar();
-			printBoard(bs, OPT_64_BOARD);
-			printBoard(bs, OPT_BOARD_STATE);
-			int total = genLegalMoves(bs);
-			printLegalMoves(bs);
-			printf(BLU "total moves in pos: " reset "%d\n", total);
-			int best = treeSearch(bs, 1);
-			printf(BLU "best score: " reset "%d\n", best);
-			getchar();
-			for(int m = 0 ; legalMoves[m][2] != -1 ; m++){
-				if(legalMoves[m][3] == best){
-					printf(CYN "Making move: %d\n", m);
-					makeMove(bs, legalMoves[m][0], legalMoves[m][1], legalMoves[m][2]);
-					break;
-				}
-			}
+
+		int myMoves[1000][4];
+		int total = genLegalMoves(bs);
+		memcpy(myMoves, legalMoves, 1000);
+		// printBoard(bs, OPT_64_BOARD);
+		// printBoard(bs, OPT_BOARD_STATE);
+
+		for(int m = 0 ; myMoves[m][2] != -1 ; m++){
+			printf("evaluating: ");
+			printMove(m, myMoves[m][0], myMoves[m][1], myMoves[m][2]);
+			makeMove(bs, myMoves[m][0], myMoves[m][1], myMoves[m][2]);
+			myMoves[m][3] = -1 * treeSearch(bs, 1);
+			undoMove(bs);
+		}
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		genFEN(outputFEN, bs);
+		printf("%s\n", outputFEN);
+		for(int m = 0 ; myMoves[m][2] != -1 ; m++){
+			printf(CYN "move %d eval: " reset "%d\n", m, myMoves[m][3]);
 		}
 	}
 }

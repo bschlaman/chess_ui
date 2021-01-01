@@ -94,6 +94,8 @@ extern const char castleChar[];
 extern const int isPawn[];
 extern const int isKing[];
 extern const int OFFBOARD;
+extern const int numDirections[];
+extern const int translation[][8];
 // TODO: remove this, temporary workaround
 extern int legalMoves[1000][4];
 /* FUNCTIONS */
@@ -109,6 +111,8 @@ extern int getColor(int piece);
 extern void getAlgebraic(char *sqfr, int sq120);
 extern void resetBoard(BOARD_STATE *bs);
 extern int genLegalMoves(BOARD_STATE *bs);
+extern int newBoardCheck(int *board, int sq, int cs);
+extern void printMove(int m, int from, int to, int moveType);
 // init.c
 extern void initRand();
 extern BOARD_STATE* initGame();
