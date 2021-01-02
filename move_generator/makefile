@@ -4,9 +4,9 @@ all:
 fen:
 	cc main.c fen.c data.c init.c moves.c eval.c -o out
 	./out -f "${FEN}"
-node:
+rand:
 	cc main.c fen.c data.c init.c moves.c eval.c -o out
-	./out -n
+	./out -r
 search:
 	cc main.c fen.c data.c init.c moves.c eval.c -o out
 	./out -s

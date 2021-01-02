@@ -22,6 +22,7 @@ int eval(BOARD_STATE *bs){
 	int numLegalMoves = mobility(bs);
 
 	int *board = bs -> board;
+	int side = bs -> side;
 	int kings = 0;
 	int queens = 0;
 	int rooks = 0;
@@ -32,7 +33,7 @@ int eval(BOARD_STATE *bs){
 	int factor;
 	for(int i = 0 ; i < 64 ; i++){
 		piece = board[sq64to120(i)];
-		factor = 1 - 2 * !(bs -> side ^ getColor(piece));
+		factor = 1 - 2 * (side ^ getColor(piece));
 		if(piece == wK || piece == bK) kings += factor;
 		if(piece == wQ || piece == bQ) queens += factor;
 		if(piece == wR || piece == bR) rooks += factor;
@@ -132,12 +133,12 @@ int negaMax(BOARD_STATE *bs, int depth){
 	int max = -100000, score;
 
 	genLegalMoves(bs);
-	int cpy[1000][4];
-	for(int m = 0 ; m < 1000 ; m++){
+	int cpy[218][4];
+	for(int m = 0 ; m < 218 ; m++){
 		cpy[m][2] = -1;
 	}
 	// memcpy(cpy, legalMoves, numMoves * sizeof(cpy[0]));
-	memcpy(cpy, legalMoves, 1000 * sizeof(cpy[0]));
+	memcpy(cpy, legalMoves, 218 * sizeof(cpy[0]));
 
 	int i = 0;
 	while(cpy[i][2] != -1){
@@ -155,18 +156,35 @@ int treeSearch(BOARD_STATE *bs, int depth){
 	int m, from, to, moveType;
 	int posEval;
 	genLegalMoves(bs);
+	int localLM[218][4];
+	memcpy(localLM, legalMoves, 218 * sizeof(localLM[0]));
+
+	// // debug
+	// if(depth == 2){
+	// 	printLegalMoves(bs);
+	// 	for(m = 0 ; m < 100 ; m++){
+	// 	// for(m = 0 ; localLM[m][2] != -1 ; m++){
+	// 		printf(CYN "%d\n" reset, localLM[m][2]);
+	// 	}
+	// 	exit(0);
+	// }
+	// if(depth == 1) printLegalMoves(bs);
+
 	int bestScore = -100000;
-	for(m = 0 ; legalMoves[m][2] != -1 ; m++){
-		from = legalMoves[m][0];
-		to = legalMoves[m][1];
-		moveType = legalMoves[m][2];
+	for(m = 0 ; localLM[m][2] != -1 ; m++){
+		// debug
+		// if(depth == 2 && m > 28) return 1;
+		// if(depth == 2 && m > 28) return 1;
+		from = localLM[m][0];
+		to = localLM[m][1];
+		moveType = localLM[m][2];
 
 		// printf("response: ");
 		// printMove(m, legalMoves[m][0], legalMoves[m][1], legalMoves[m][2]);
 		makeMove(bs, from, to, moveType);
-		posEval = 1 * treeSearch(bs, depth - 1);
+		posEval = -1 * treeSearch(bs, depth - 1);
 		undoMove(bs);
-		legalMoves[m][3] = posEval;
+
 		if(posEval > bestScore) bestScore = posEval;
 	}
 	return bestScore;

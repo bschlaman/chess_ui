@@ -21,6 +21,8 @@ enum { false, true };
 #define FEN2 "rnbq2n1/ppp2ppp/5Nk1/1b6/4PPp1/2P5/PP2K1PP/RNBQ1BR1 w KQkq f3 2 15"
 #define FEN3 "rnkR4/4bq2/p1n4r/Pp1PppNP/1P6/B1PP4/R2K1P2/1N1B4 b KQkq -"
 #define FEN4 "3k2Q1/7R/1p1p4/p1p2P2/2P1K3/1P3P2/P7/8 b - c6 12 51"
+// castling
+#define FEN5 "r3k2r/1p6/8/8/b4Pp1/8/8/R3K2R b KQkq f3"
 
 typedef unsigned long long U64;
 
@@ -97,7 +99,7 @@ extern const int OFFBOARD;
 extern const int numDirections[];
 extern const int translation[][8];
 // TODO: remove this, temporary workaround
-extern int legalMoves[1000][4];
+extern int legalMoves[][4];
 /* FUNCTIONS */
 // fen.c
 extern int parseFEN(char *fen, BOARD_STATE *bs);

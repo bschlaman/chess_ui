@@ -16,8 +16,7 @@ BOARD_STATE* initGame(){
 
 void initLegalMoves(){
 	// TODO: remove this, temporary workaround
-	for(int m  = 0 ; m < 1000 ; m++){
+	for(int m  = 0 ; m < 218 ; m++){
 		legalMoves[m][2] = -1;
 	}
-
 }

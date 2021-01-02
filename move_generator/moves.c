@@ -86,14 +86,21 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 			board[to + (1 - 2 * getColor(piece)) * 10] = EMPTY;
 			break;
 		case 8:
+			board[from] = getColor(piece) ? wN : bN; break;
 		case 9:
+			board[from] = getColor(piece) ? wB : bB; break;
 		case 10:
+			board[from] = getColor(piece) ? wR : bR; break;
 		case 11:
+			board[from] = getColor(piece) ? wQ : bQ; break;
 		case 12:
+			board[from] = getColor(piece) ? wN : bN; break;
 		case 13:
+			board[from] = getColor(piece) ? wB : bB; break;
 		case 14:
+			board[from] = getColor(piece) ? wR : bR; break;
 		case 15:
-		break;
+			board[from] = getColor(piece) ? wQ : bQ; break;
 		default:
 			printf(RED "Error with moveType on makeMove\n" reset);
 			exit(1);
@@ -122,16 +129,6 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 		} else {
 			ASSERT(piece == wK);
 			bs -> castlePermission &= 3;
-		}
-	}
-	// promotion
-	// TODO: obviously finish this logic for all promo types
-	// TODO: having this here will break undo
-	if(isPawn[board[from]] && ((sq120to64(to)>=0&&sq120to64(to)<=7)||(sq120to64(to)>=56&&sq120to64(to)<=63))){
-		if(getColor(board[from])){
-			board[from] = bQ;
-		} else {
-			board[from] = wQ;
 		}
 	}
 
@@ -176,7 +173,7 @@ void undoMove(BOARD_STATE *bs){
 	if(moveType & 4 == 0){
 		board[to] = EMPTY;
 	}
-	if(moveType == 4){
+	if(moveType == 4 || (moveType >= 12 && moveType <= 15)){
 		board[to] = capturedPiece;
 	}
 	// en passant capture
@@ -184,6 +181,10 @@ void undoMove(BOARD_STATE *bs){
 		board[to] = EMPTY;
 		// TODO: I use getColor elsewhere
 		board[to + (1 - 2 * !getColor(capturedPiece)) * 10] = capturedPiece;
+	}
+	// promotions
+	if(moveType >= 8 && moveType <= 15){
+		board[from] = bs -> side ? bP : wP;
 	}
 	// uncastling, move the rook
 	if(moveType == 2 || moveType == 3){
