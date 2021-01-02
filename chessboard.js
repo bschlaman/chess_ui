@@ -32,6 +32,16 @@ function switchView(){
 	blackView = !blackView;
 }
 
+function updateSide(){
+	document.getElementsByClassName("tomove")[0].innerHTML = side;
+}
+
+function switchSide(){
+	if(side == "white"){ side = "black"; }
+	else if(side == "black"){ side = "white"; }
+	updateSide();
+}
+
 function drawCanvas(){
 	let canv = document.getElementById("canv");
 	let ctx = canv.getContext("2d");
@@ -248,6 +258,7 @@ var setFEN = function(fen){
 	side = stateInfo[1] == "b" ? "black" : "white";
 	castlePermission = stateInfo[2];
 	enPas = stateInfo[3];
+	updateSide();
 }
 
 // This can be written better
