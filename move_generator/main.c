@@ -56,6 +56,7 @@ int getType(int piece){
 
 // TODO: should I make an isOccupied()?
 int getColor(int piece){
+	if(piece == EMPTY) return NEITHER;
 	// black is 7, 8, 9, 10, 11, 12
 	return piece > 6 && piece < 13;
 }
@@ -156,6 +157,7 @@ void printAllMoves(BOARD_STATE *bs){
 // likely since I am looking up the entire board again
 int isCheck(int *board, int color){
 	int i, piece, cs, sq, d, type;
+	int cpiece;
 
 	for(i = 0 ; i < 64 ; i++){
 		sq = sq64to120(i);
@@ -235,11 +237,13 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			cs = sq;
 			// while sq not offboard
 			while(board[cs += translation[type][d]] != OFFBOARD){
-				if(newBoardCheck(board, sq, cs)){ break; }
+				//if(!newBoardCheck(board, sq, cs)){
 				if(board[cs] == EMPTY){
-					saveMove(sq, cs, 0); total++;
+					if(!newBoardCheck(board, sq, cs)){ saveMove(sq, cs, 0); total++; }
 				} else {
-					if(getColor(piece) != getColor(board[cs])){ saveMove(sq, cs, 4); total++; }
+					if(getColor(piece) != getColor(board[cs])){
+						if(!newBoardCheck(board, sq, cs)){ saveMove(sq, cs, 4); total++; }
+					}
 					break;
 				}
 				// stop if piece is a knight or king
@@ -272,7 +276,9 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		}
 		// captures
 		cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
-		if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
+		if(board[cs] != EMPTY && board[cs] != OFFBOARD \
+			&& getColor(piece) != getColor(board[cs]) \
+			&& !newBoardCheck(board, sq, cs)){
 			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
 				saveMove(sq, cs, 12); total++;
 				saveMove(sq, cs, 13); total++;
@@ -283,7 +289,9 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			}
 		}
 		cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
-		if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
+		if(board[cs] != EMPTY && board[cs] != OFFBOARD \
+			&& getColor(piece) != getColor(board[cs]) \
+			&& !newBoardCheck(board, sq, cs)){
 			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
 				saveMove(sq, cs, 12); total++;
 				saveMove(sq, cs, 13); total++;
@@ -468,7 +476,9 @@ int main(int argc, char *argv[]){
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
 		// char testFEN[] = "5p1b/1R3QP1/3kp3/p7/1p6/8/P5P1/6K1 w - -"; // debug
-		char testFEN[] = "8/3R4/8/8/2Q5/8/Pk2p1P1/6K1 b - -"; // debug
+		// char testFEN[] = "8/3R4/8/8/2Q5/8/Pk2p1P1/6K1 b - -"; // debug
+		// char testFEN[] = "8/3R4/8/8/2Q4q/8/Pk4PK/8 w - -"; // debug
+		char testFEN[] = "4Q2k/3R2p1/5b1p/pq6/1p2pr2/1P5P/PR3PPK/2r5 b - -"; // debug
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
@@ -543,6 +553,12 @@ int main(int argc, char *argv[]){
 			myMoves[m][3] = -1 * treeSearch(bs, 2);
 			undoMove(bs);
 		}
+		// int m = 0;
+		// printf("evaluating: ");
+		// printMove(m, myMoves[m][0], myMoves[m][1], myMoves[m][2]);
+		// makeMove(bs, myMoves[m][0], myMoves[m][1], myMoves[m][2]);
+		// myMoves[m][3] = -1 * treeSearch(bs, 2);
+		// undoMove(bs);
 
 		printf(RED "\n====== AFTER UNDOS ========\n" reset);
 		printBoard(bs, OPT_64_BOARD);

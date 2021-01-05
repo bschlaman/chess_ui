@@ -86,21 +86,21 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 			board[to + (1 - 2 * getColor(piece)) * 10] = EMPTY;
 			break;
 		case 8:
-			board[from] = getColor(piece) ? wN : bN; break;
+			board[from] = getColor(piece) ? bN : wN; break;
 		case 9:
-			board[from] = getColor(piece) ? wB : bB; break;
+			board[from] = getColor(piece) ? bB : wB; break;
 		case 10:
-			board[from] = getColor(piece) ? wR : bR; break;
+			board[from] = getColor(piece) ? bR : wR; break;
 		case 11:
-			board[from] = getColor(piece) ? wQ : bQ; break;
+			board[from] = getColor(piece) ? bQ : wQ; break;
 		case 12:
-			board[from] = getColor(piece) ? wN : bN; break;
+			board[from] = getColor(piece) ? bN : wN; break;
 		case 13:
-			board[from] = getColor(piece) ? wB : bB; break;
+			board[from] = getColor(piece) ? bB : wB; break;
 		case 14:
-			board[from] = getColor(piece) ? wR : bR; break;
+			board[from] = getColor(piece) ? bR : wR; break;
 		case 15:
-			board[from] = getColor(piece) ? wQ : bQ; break;
+			board[from] = getColor(piece) ? bQ : wQ; break;
 		default:
 			printf(RED "Error with moveType on makeMove\n" reset);
 			exit(1);

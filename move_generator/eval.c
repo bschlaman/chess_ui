@@ -19,7 +19,8 @@ int eval(BOARD_STATE *bs){
 
 	// float mobilityWeight = 0.1;
 	int mobilityWeight = 1;
-	int numLegalMoves = mobility(bs);
+	int numLegalMoves = 1;
+	numLegalMoves = mobility(bs);
 
 	int *board = bs -> board;
 	int side = bs -> side;
@@ -82,12 +83,12 @@ int mobility(BOARD_STATE *bs){
 				for(d = 0 ; d < numDirections[type] ; d++){
 					cs = sq;
 					while(board[cs += translation[type][d]] != OFFBOARD){
-						// if the piece is the king of opposite color
-						// if not empty, either break or its the king
-						if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){
-							total++;
+						if(board[cs] == EMPTY){
+							if(!newBoardCheck(board, sq, cs)) total++;
 						} else {
-							if(side != getColor(board[cs])){ total++; }
+							if(side != getColor(board[cs])){
+								if(!newBoardCheck(board, sq, cs)) total++;
+							}
 							break;
 						}
 						if(type == 0 || type == 4){ break; }
@@ -111,11 +112,15 @@ int mobility(BOARD_STATE *bs){
 
 				// captures
 				cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
-				if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
+				if(board[cs] != EMPTY && board[cs] != OFFBOARD \
+					&& getColor(piece) != getColor(board[cs]) \
+					&& !newBoardCheck(board, sq, cs)){
 					total++;
 				}
 				cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
-				if(board[cs] != EMPTY && board[cs] != OFFBOARD && getColor(piece) != getColor(board[cs]) && !newBoardCheck(board, sq, cs)){
+				if(board[cs] != EMPTY && board[cs] != OFFBOARD \
+					&& getColor(piece) != getColor(board[cs]) \
+					&& !newBoardCheck(board, sq, cs)){
 					total++;
 				}
 			}
@@ -154,21 +159,25 @@ int negaMax(BOARD_STATE *bs, int depth){
 int treeSearch(BOARD_STATE *bs, int depth){
 	if(depth == 0){ return eval(bs); }
 	int m, from, to, moveType;
-	int posEval;
+	int posEval, b = 0;
 	genLegalMoves(bs);
 	int localLM[218][4];
 	memcpy(localLM, legalMoves, 218 * sizeof(localLM[0]));
 
 	// // debug
 	// if(depth == 2){
+	//  	printf(BLU "side to move: " reset "%s\n", bs -> side == WHITE ? "white" : "black");
 	// 	printLegalMoves(bs);
-	// 	for(m = 0 ; m < 100 ; m++){
-	// 	// for(m = 0 ; localLM[m][2] != -1 ; m++){
-	// 		printf(CYN "%d\n" reset, localLM[m][2]);
-	// 	}
-	// 	exit(0);
+	// 	// for(m = 0 ; m < 100 ; m++){
+	// 	// // for(m = 0 ; localLM[m][2] != -1 ; m++){
+	// 	// 	printf(CYN "%d\n" reset, localLM[m][2]);
+	// 	// }
+	// 	// exit(0);
 	// }
-	// if(depth == 1) printLegalMoves(bs);
+	// if(depth == 1 && bs -> board[72] == wQ){
+	//  	printf(BLU "side to move: " reset "%s\n", bs -> side == WHITE ? "white" : "black");
+	// 	printLegalMoves(bs);
+	// }
 
 	int bestScore = -100000;
 	for(m = 0 ; localLM[m][2] != -1 ; m++){
@@ -185,8 +194,20 @@ int treeSearch(BOARD_STATE *bs, int depth){
 		posEval = -1 * treeSearch(bs, depth - 1);
 		undoMove(bs);
 
-		if(posEval > bestScore) bestScore = posEval;
+		if(posEval > bestScore){
+			bestScore = posEval;
+			b = m;
+			// if(depth == 2){
+			// 	printf(RED "move: %d score: %d\n" reset, m, bestScore);
+			// }
+		}
 	}
+	// if(depth == 2){
+	// 	printf("------------\n");
+	// 	printMove(b, localLM[b][0], localLM[b][1], localLM[b][2]);
+	// 	printf("------------\n");
+	// 	exit(0);
+	// }
 	return bestScore;
 }
 

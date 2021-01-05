@@ -115,6 +115,7 @@ extern void resetBoard(BOARD_STATE *bs);
 extern int genLegalMoves(BOARD_STATE *bs);
 extern int newBoardCheck(int *board, int sq, int cs);
 extern void printMove(int m, int from, int to, int moveType);
+extern void printLegalMoves(BOARD_STATE *bs);
 // init.c
 extern void initRand();
 extern BOARD_STATE* initGame();
