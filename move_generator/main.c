@@ -12,7 +12,8 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq);
 int genRandomMove(BOARD_STATE *bs);
 void printAllMoves(BOARD_STATE *bs);
 void saveMove(int from, int to, int moveType);
-int isCheck(int *board, int color);
+int isCheck(int *board, int kingsq, int color);
+int oldisCheck(int *board, int color);
 // TODO: somehow there's an issue with the global var
 
 int sq64to120(int sq64){
@@ -54,9 +55,8 @@ int getType(int piece){
 	return (piece - 2) % 6;
 }
 
-// TODO: should I make an isOccupied()?
+// TODO: this is risky for EMPTY squares
 int getColor(int piece){
-	if(piece == EMPTY) return NEITHER;
 	// black is 7, 8, 9, 10, 11, 12
 	return piece > 6 && piece < 13;
 }
@@ -151,11 +151,55 @@ void printAllMoves(BOARD_STATE *bs){
 	printf(BLU "total moves in pos: " reset "%d\n", total);
 }
 
+int isCheck(int *board, int kingsq, int color){
+counter++;
+	int d;
+	int cpiece;
+	int type = getType(cpiece);
+
+	// kings
+	for(d = 0 ; d < 8 ; d++){
+		// TODO: don't need to check if this is OFFBOARD
+		// but may run into a -1 index if using isKing
+		if(cpiece = board[kingsq + translation[4][d]] != OFFBOARD){
+			// TODO: Assert the color?
+			if(isKing[cpiece]) return true;
+		}
+	}
+	// knights
+	for(d = 0 ; d < 8 ; d++){
+		if(cpiece = board[kingsq + translation[0][d]] != OFFBOARD \
+			&& getType(cpiece) == KNIGHT \
+			&& color != getColor(cpiece)){
+			return true;
+		}
+	}
+	// pawns
+	if(color == BLACK && board[kingsq + 9] == wP) return true;
+	if(color == BLACK && board[kingsq + 11] == wP) return true;
+	if(color == WHITE && board[kingsq - 9] == bP) return true;
+	if(color == WHITE && board[kingsq - 11] == bP) return true;
+	// ray
+	for(d = 0 ; d < 8 ; d++){
+		while(cpiece = board[kingsq += translation[4][d]] != OFFBOARD){
+			if(cpiece != EMPTY && getColor(cpiece) != color){
+				if(d < 4){
+					if(type == BISHOP || type == QUEEN) return true;
+				}
+				if(d < 8){
+					if(type == ROOK || type == QUEEN) return true;
+				}
+			}
+		}
+	}
+	return false;
+}
 // given a color and board, is that side in check?
 // TODO: wow why am I copy pasting my move gen logic
 // TODO: this is the biggest slowdown in the program
 // likely since I am looking up the entire board again
-int isCheck(int *board, int color){
+int oldisCheck(int *board, int color){
+counter++;
 	int i, piece, cs, sq, d, type;
 	int cpiece;
 
@@ -168,26 +212,26 @@ int isCheck(int *board, int color){
 				type = getType(piece);
 				for(d = 0 ; d < numDirections[type] ; d++){
 					cs = sq;
-					while(board[cs += translation[type][d]] != OFFBOARD){
+					while(cpiece = board[cs += translation[type][d]] != OFFBOARD){
 						// if the piece is the king of opposite color
 						// if not empty, either break or its the king
-						if(board[cs] != EMPTY){
-							if(getColor(board[cs]) == color && isKing[board[cs]]){
+						if(cpiece != EMPTY){
+							if(getColor(cpiece) == color && isKing[cpiece]){
 								return true;
 							}
 							else { break; }
 						}
-						if(type == 0 || type == 4){ break; }
+						if(type == KNIGHT || type == KING){ break; }
 					}
 				}
 			} else {
 				// pawns
-				cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
-				if(board[cs] != OFFBOARD && getColor(board[cs]) == color && isKing[board[cs]]){
+				cpiece = board[cs = sq - (1 - 2 * getColor(piece)) * 10 + 1];
+				if(cpiece != OFFBOARD && getColor(cpiece) == color && isKing[cpiece]){
 					return true;
 				}
-				cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
-				if(board[cs] != OFFBOARD && getColor(board[cs]) == color && isKing[board[cs]]){
+				cpiece = board[cs = sq - (1 - 2 * getColor(piece)) * 10 - 1];
+				if(cpiece != OFFBOARD && getColor(cpiece) == color && isKing[cpiece]){
 					return true;
 				}
 			}
@@ -200,14 +244,18 @@ int enPasCorrectColor(int enPas, int side){
 	return enPas - 40 - 30 * side >= 1 && enPas - 40 - 30 * side <= 8;
 }
 
-int newBoardCheck(int *board, int sq, int cs){
+int newBoardCheck(BOARD_STATE *bs, int sq, int cs){
 	// TODO: a bit clunky passing in a board and then passing a BOARD_STATE to isCheck()
 	// hypothetical board state
+	int *board = bs -> board;
 	int check = false;
 	int capturedPiece = board[cs];
+	int kingsq = bs -> kingSq[bs -> side];
+
 	board[cs] = board[sq];
 	board[sq] = EMPTY;
-	check = isCheck(board, getColor(board[cs]));
+	if(kingsq == sq) kingsq = cs;
+	check = isCheck(board, kingsq, bs -> side);
 	board[sq] = board[cs];
 	board[cs] = capturedPiece;
 	return check;
@@ -237,17 +285,17 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			cs = sq;
 			// while sq not offboard
 			while(board[cs += translation[type][d]] != OFFBOARD){
-				//if(!newBoardCheck(board, sq, cs)){
+				//if(!newBoardCheck(bs, sq, cs)){
 				if(board[cs] == EMPTY){
-					if(!newBoardCheck(board, sq, cs)){ saveMove(sq, cs, 0); total++; }
+					if(!newBoardCheck(bs, sq, cs)){ saveMove(sq, cs, 0); total++; }
 				} else {
 					if(getColor(piece) != getColor(board[cs])){
-						if(!newBoardCheck(board, sq, cs)){ saveMove(sq, cs, 4); total++; }
+						if(!newBoardCheck(bs, sq, cs)){ saveMove(sq, cs, 4); total++; }
 					}
 					break;
 				}
 				// stop if piece is a knight or king
-				if(type == 0 || type == 4){ break; }
+				if(type == KNIGHT || type == KING){ break; }
 			}
 		}
 	} else {
@@ -256,7 +304,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		// forward 1
 		// mapping {0,1} -> {-1,1} -> {-10,10}
 		cs = sq - (1 - 2 * getColor(piece)) * 10;
-		if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){
+		if(board[cs] == EMPTY && !newBoardCheck(bs, sq, cs)){
 			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
 				saveMove(sq, cs, 8); total++;
 				saveMove(sq, cs, 9); total++;
@@ -270,7 +318,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
 			cs = sq - (1 - 2 * getColor(piece)) * 20;
 			cs2 = sq - (1 - 2 * getColor(piece)) * 10;
-			if(board[cs] == EMPTY && board[cs2] == EMPTY && !newBoardCheck(board, sq, cs)){
+			if(board[cs] == EMPTY && board[cs2] == EMPTY && !newBoardCheck(bs, sq, cs)){
 				saveMove(sq, cs, 1); total++;
 			}
 		}
@@ -278,7 +326,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
 		if(board[cs] != EMPTY && board[cs] != OFFBOARD \
 			&& getColor(piece) != getColor(board[cs]) \
-			&& !newBoardCheck(board, sq, cs)){
+			&& !newBoardCheck(bs, sq, cs)){
 			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
 				saveMove(sq, cs, 12); total++;
 				saveMove(sq, cs, 13); total++;
@@ -291,7 +339,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
 		if(board[cs] != EMPTY && board[cs] != OFFBOARD \
 			&& getColor(piece) != getColor(board[cs]) \
-			&& !newBoardCheck(board, sq, cs)){
+			&& !newBoardCheck(bs, sq, cs)){
 			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
 				saveMove(sq, cs, 12); total++;
 				saveMove(sq, cs, 13); total++;
@@ -303,7 +351,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		}
 		// enPas
 		cs = bs -> enPas;
-		if(cs != OFFBOARD && !newBoardCheck(board, sq, cs)){
+		if(cs != OFFBOARD && !newBoardCheck(bs, sq, cs)){
 			// enPasCaptureFromSq is the same as what it would look like to captrue TO that sq
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 + 1;
 			if(sq == enPasCaptureFromSq && enPasCorrectColor(cs, getColor(piece))){
@@ -321,17 +369,17 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 	if(piece == wK){
 		// if cperm exists, not in check and not thru check and not thru piece
 		if(cperm & WKCA \
-			&& !newBoardCheck(board, sq, sq) \
-			&& !newBoardCheck(board, sq, sq + 1) \
-			&& !newBoardCheck(board, sq, sq + 2) \
+			&& !newBoardCheck(bs, sq, sq) \
+			&& !newBoardCheck(bs, sq, sq + 1) \
+			&& !newBoardCheck(bs, sq, sq + 2) \
 			&& board[96] == EMPTY && board[97] == EMPTY){
 			ASSERT(sq == 95);
 			saveMove(sq, sq + 2, 2); total++;
 		}
 		if(cperm & WQCA \
-			&& !newBoardCheck(board, sq, sq) \
-			&& !newBoardCheck(board, sq, sq - 1) \
-			&& !newBoardCheck(board, sq, sq - 2) \
+			&& !newBoardCheck(bs, sq, sq) \
+			&& !newBoardCheck(bs, sq, sq - 1) \
+			&& !newBoardCheck(bs, sq, sq - 2) \
 			&& board[92] == EMPTY && board[93] == EMPTY && board[94] == EMPTY){
 			ASSERT(sq == 95);
 			saveMove(sq, sq - 2, 3); total++;
@@ -339,17 +387,17 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 	}
 	if(piece == bK){
 		if(cperm & BKCA \
-			&& !newBoardCheck(board, sq, sq) \
-			&& !newBoardCheck(board, sq, sq + 1) \
-			&& !newBoardCheck(board, sq, sq + 2) \
+			&& !newBoardCheck(bs, sq, sq) \
+			&& !newBoardCheck(bs, sq, sq + 1) \
+			&& !newBoardCheck(bs, sq, sq + 2) \
 			&& board[26] == EMPTY && board[27] == EMPTY){
 			ASSERT(sq == 25);
 			saveMove(sq, sq + 2, 2); total++;
 		}
 		if(cperm & BQCA \
-			&& !newBoardCheck(board, sq, sq) \
-			&& !newBoardCheck(board, sq, sq - 1) \
-			&& !newBoardCheck(board, sq, sq - 2) \
+			&& !newBoardCheck(bs, sq, sq) \
+			&& !newBoardCheck(bs, sq, sq - 1) \
+			&& !newBoardCheck(bs, sq, sq - 2) \
 			&& board[22] == EMPTY && board[23] == EMPTY && board[24] == EMPTY){
 			ASSERT(sq == 25);
 			saveMove(sq, sq - 2, 3); total++;
@@ -372,6 +420,8 @@ void resetBoard(BOARD_STATE *bs){
 	bs -> castlePermission = 0;
 	bs -> enPas = OFFBOARD;
 	bs -> ply = 1;
+	bs -> kingSq[WHITE] = 95;
+	bs -> kingSq[BLACK] = 25;
 }
 
 void printBoard(BOARD_STATE *bs, int option){
@@ -416,8 +466,8 @@ void printBoard(BOARD_STATE *bs, int option){
 		getCastlePermissions(cperms, bs -> castlePermission);
 		printf(BLU "en passant sq: " reset "%s\n", sqAN);
 		printf(BLU "castlePerms: " reset "%s\n", cperms);
-		printf(BLU "white in check: " reset "%s\n", isCheck(bs -> board, WHITE) ? "true" : "false");
-		printf(BLU "black in check: " reset "%s\n", isCheck(bs -> board, BLACK) ? "true" : "false");
+		printf(BLU "white in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[WHITE], WHITE) ? "true" : "false");
+		printf(BLU "black in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[BLACK], BLACK) ? "true" : "false");
 		printf(BLU "eval: " reset "%d\n", eval(bs));
 		bs -> side = !(bs -> side);
 		// TODO: the num legal moves might be innacurate
@@ -566,5 +616,6 @@ int main(int argc, char *argv[]){
 		for(int m = 0 ; myMoves[m][2] != -1 ; m++){
 			printf(CYN "move %d eval: " reset "%d\n", m, myMoves[m][3]);
 		}
+		printf(RED "ischeck count: %d\n" reset, counter);
 	}
 }

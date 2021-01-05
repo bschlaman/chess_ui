@@ -19,4 +19,5 @@ const int translation[][8] = {
 // and it will be filled if 218 moves are on the board
 int legalMoves[218][4];
 int mode = NORMAL_MODE;
+int counter = 0;
 

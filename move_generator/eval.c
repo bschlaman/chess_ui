@@ -84,10 +84,10 @@ int mobility(BOARD_STATE *bs){
 					cs = sq;
 					while(board[cs += translation[type][d]] != OFFBOARD){
 						if(board[cs] == EMPTY){
-							if(!newBoardCheck(board, sq, cs)) total++;
+							if(!newBoardCheck(bs, sq, cs)) total++;
 						} else {
 							if(side != getColor(board[cs])){
-								if(!newBoardCheck(board, sq, cs)) total++;
+								if(!newBoardCheck(bs, sq, cs)) total++;
 							}
 							break;
 						}
@@ -100,12 +100,12 @@ int mobility(BOARD_STATE *bs){
 				// forward 1
 				// mapping {0,1} -> {-1,1} -> {-10,10}
 				cs = sq - (1 - 2 * getColor(piece)) * 10;
-				if(board[cs] == EMPTY && !newBoardCheck(board, sq, cs)){ total++; }
+				if(board[cs] == EMPTY && !newBoardCheck(bs, sq, cs)){ total++; }
 				// forward 2
 				if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
 					cs = sq - (1 - 2 * getColor(piece)) * 20;
 					cs2 = sq - (1 - 2 * getColor(piece)) * 10;
-					if(board[cs] == EMPTY && board[cs2] == EMPTY && !newBoardCheck(board, sq, cs)){
+					if(board[cs] == EMPTY && board[cs2] == EMPTY && !newBoardCheck(bs, sq, cs)){
 						total++;
 					}
 				}
@@ -114,13 +114,13 @@ int mobility(BOARD_STATE *bs){
 				cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
 				if(board[cs] != EMPTY && board[cs] != OFFBOARD \
 					&& getColor(piece) != getColor(board[cs]) \
-					&& !newBoardCheck(board, sq, cs)){
+					&& !newBoardCheck(bs, sq, cs)){
 					total++;
 				}
 				cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
 				if(board[cs] != EMPTY && board[cs] != OFFBOARD \
 					&& getColor(piece) != getColor(board[cs]) \
-					&& !newBoardCheck(board, sq, cs)){
+					&& !newBoardCheck(bs, sq, cs)){
 					total++;
 				}
 			}

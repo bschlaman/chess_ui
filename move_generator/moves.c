@@ -130,10 +130,11 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 			ASSERT(piece == wK);
 			bs -> castlePermission &= 3;
 		}
+		bs -> kingSq[bs -> side] = to;
 	}
 
 	// setting the pieces and switching side
-	board[to] = board[from];
+	board[to] = piece;
 	board[from] = EMPTY;
 	// is this the best way to switch sides?
 	bs -> side = !(bs -> side);
@@ -159,6 +160,7 @@ void undoMove(BOARD_STATE *bs){
 	board[from] = board[to];
 	board[to] = EMPTY;
 	// is this the best way to switch sides?
+	if(isKing[board[from]]) bs -> kingSq[bs -> side] = from;
 	bs -> side = !(bs -> side);
 	ASSERT(bs -> side == WHITE || bs -> side == BLACK);
 

@@ -24,8 +24,6 @@ enum { false, true };
 // castling
 #define FEN5 "r3k2r/1p6/8/8/b4Pp1/8/8/R3K2R b KQkq f3"
 
-typedef unsigned long long U64;
-
 enum {
     A1 = 21, B1, C1, D1, E1, F1, G1, H1,
     A2 = 31, B2, C2, D2, E2, F2, G2, H2,
@@ -41,6 +39,7 @@ enum {
 enum { WKCA = 8, WQCA = 4, BKCA = 2, BQCA = 1 };
 enum { WHITE, BLACK, NEITHER };
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, CANDIDATESQ };
+enum { KNIGHT, BISHOP, ROOK, QUEEN, KING };
 // move encoding, using the chess programming wiki method
 // 0  0	0	0	0	quiet moves
 // 1  0	0	0	1	double pawn push
@@ -60,6 +59,8 @@ enum { PROMOTION = 8, CAPTURE = 4, SPECIAL1 = 2, SPECIAL2 = 1 };
 
 typedef unsigned short int move;
 
+typedef unsigned long long U64;
+
 typedef struct {
 	move fromto;
 	int enPas;
@@ -71,14 +72,16 @@ typedef struct {
 	// rename to pieces?
 	int board[120];
 	int ply;
-	
+
 	int side;
 	int enPas;
 	int castlePermission;
-	
+
+	int kingSq[2];
+
 	// Hash key, unique representation of board
 	U64 posKey;
-	
+
 	MOVE_STACK history[200];
 } BOARD_STATE;
 
@@ -98,6 +101,7 @@ extern const int isKing[];
 extern const int OFFBOARD;
 extern const int numDirections[];
 extern const int translation[][8];
+extern int counter;
 // TODO: remove this, temporary workaround
 extern int legalMoves[][4];
 /* FUNCTIONS */
@@ -113,7 +117,7 @@ extern int getColor(int piece);
 extern void getAlgebraic(char *sqfr, int sq120);
 extern void resetBoard(BOARD_STATE *bs);
 extern int genLegalMoves(BOARD_STATE *bs);
-extern int newBoardCheck(int *board, int sq, int cs);
+extern int newBoardCheck(BOARD_STATE *bs, int sq, int cs);
 extern void printMove(int m, int from, int to, int moveType);
 extern void printLegalMoves(BOARD_STATE *bs);
 // init.c
