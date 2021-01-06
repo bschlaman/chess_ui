@@ -87,7 +87,7 @@ typedef struct {
 
 
 // global mode
-enum { NORMAL_MODE, FEN_MODE, RAND_MODE, SEARCH_MODE };
+enum { NORMAL_MODE, FEN_MODE, PERFT_MODE, SEARCH_MODE };
 // printBoard opts
 enum { OPT_64_BOARD, OPT_BOARD_STATE, OPT_120_BOARD };
 

@@ -49,6 +49,9 @@ int parseFEN(char *fen, BOARD_STATE *bs){
 
 		}
 
+		if(piece == wK){ bs -> kingSq[WHITE] = sq64to120(frToSq64(file, rank)); }
+		if(piece == bK){ bs -> kingSq[BLACK] = sq64to120(frToSq64(file, rank)); }
+
 		for(i = 0 ; i < num ; i++){
 			bs -> board[sq64to120(frToSq64(file, rank))] = piece;
 			file++;

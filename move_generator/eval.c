@@ -6,9 +6,9 @@
 int mobility(BOARD_STATE *bs);
 
 int eval(BOARD_STATE *bs){
-	// printf(CYN "vvv " reset);
 	int materialEval = 0;
 	int mobilityEval = 0;
+	int pawnEval = 0;
 
 	int kingWeight = 200;
 	int queenWeight = 9;
@@ -16,6 +16,8 @@ int eval(BOARD_STATE *bs){
 	int bishopWeight = 3;
 	int knightWeight = 3;
 	int pawnWeight = 1;
+
+	int pawnPosWeight[8] = {0, 0, 0, 1, 2, 3, 5, 5};
 
 	// float mobilityWeight = 0.1;
 	int mobilityWeight = 1;
@@ -41,6 +43,12 @@ int eval(BOARD_STATE *bs){
 		if(piece == wB || piece == bB) bishops += factor;
 		if(piece == wN || piece == bN) knights += factor;
 		if(piece == wP || piece == bP) pawns += factor;
+		if(piece == wP && i < 40){
+			pawnEval += factor * pawnPosWeight[7 - (i - i % 8) / 8];
+		}
+		if(piece == bP && i > 23){
+			pawnEval += factor * pawnPosWeight[(i - i % 8) / 8];
+		}
 	}
 	materialEval += kings * kingWeight;
 	materialEval += queens * queenWeight;
@@ -61,13 +69,13 @@ int eval(BOARD_STATE *bs){
 	if(numLegalMoves == 0){
 		return -100000000;
 	}
-	return materialEval;
+	return materialEval + pawnEval;
 }
 
 // TODO: this is approximate
 // doesn't count castling, en passant capture
 int mobility(BOARD_STATE *bs){
-	int i, total = 0, sq, cs, cs2, piece;
+	int i, total = 0, sq, cs, cs2, piece, cpiece;
 	int d, type;
 	int *board = bs -> board;
 	int side = bs -> side;
@@ -82,11 +90,11 @@ int mobility(BOARD_STATE *bs){
 				type = getType(piece);
 				for(d = 0 ; d < numDirections[type] ; d++){
 					cs = sq;
-					while(board[cs += translation[type][d]] != OFFBOARD){
-						if(board[cs] == EMPTY){
+					while((cpiece = board[cs += translation[type][d]]) != OFFBOARD){
+						if(cpiece == EMPTY){
 							if(!newBoardCheck(bs, sq, cs)) total++;
 						} else {
-							if(side != getColor(board[cs])){
+							if(side != getColor(cpiece)){
 								if(!newBoardCheck(bs, sq, cs)) total++;
 							}
 							break;

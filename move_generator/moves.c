@@ -86,21 +86,21 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 			board[to + (1 - 2 * getColor(piece)) * 10] = EMPTY;
 			break;
 		case 8:
-			board[from] = getColor(piece) ? bN : wN; break;
+			piece = getColor(piece) ? bN : wN; break;
 		case 9:
-			board[from] = getColor(piece) ? bB : wB; break;
+			piece = getColor(piece) ? bB : wB; break;
 		case 10:
-			board[from] = getColor(piece) ? bR : wR; break;
+			piece = getColor(piece) ? bR : wR; break;
 		case 11:
-			board[from] = getColor(piece) ? bQ : wQ; break;
+			piece = getColor(piece) ? bQ : wQ; break;
 		case 12:
-			board[from] = getColor(piece) ? bN : wN; break;
+			piece = getColor(piece) ? bN : wN; break;
 		case 13:
-			board[from] = getColor(piece) ? bB : wB; break;
+			piece = getColor(piece) ? bB : wB; break;
 		case 14:
-			board[from] = getColor(piece) ? bR : wR; break;
+			piece = getColor(piece) ? bR : wR; break;
 		case 15:
-			board[from] = getColor(piece) ? bQ : wQ; break;
+			piece = getColor(piece) ? bQ : wQ; break;
 		default:
 			printf(RED "Error with moveType on makeMove\n" reset);
 			exit(1);
@@ -142,7 +142,7 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 }
 
 void undoMove(BOARD_STATE *bs){
-	int from, to, moveType;
+	int from, to, moveType, side;
 
 	// 1) decrement ply
 	bs -> ply--;
@@ -156,13 +156,13 @@ void undoMove(BOARD_STATE *bs){
 
 	// 2) restore reversible
 	int *board = bs -> board;
+	side = bs -> side;
 	// setting the pieces and switching side
 	board[from] = board[to];
 	board[to] = EMPTY;
+	if(isKing[board[from]]) bs -> kingSq[!side] = from;
 	// is this the best way to switch sides?
-	if(isKing[board[from]]) bs -> kingSq[bs -> side] = from;
-	bs -> side = !(bs -> side);
-	ASSERT(bs -> side == WHITE || bs -> side == BLACK);
+	bs -> side = !side;
 
 	// 3) restore irreversible
 	// 3.1) restore non-board stuff

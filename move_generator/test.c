@@ -101,7 +101,7 @@ int testEval(){
 	return randInt(-5, 5);
 }
 
-int legalMoves[218][3];
+// int legalMoves[218][3];
 int testGenLegalMoves(){
 	int i, total = 0;
 
@@ -154,6 +154,11 @@ int main(int argc, char *argv[]){
 
 	printf(CYN "test: %c\n" reset, 0 - '0');
 	printf(CYN "test: %c\n" reset, 0 + '0');
+	int rank;
+	for(int i = 0 ; i < 64 ; i++){
+		rank = 7 - (i - i % 8) / 8 ;
+		printf("%d\n", rank);
+	}
 
 	return 0;
 }

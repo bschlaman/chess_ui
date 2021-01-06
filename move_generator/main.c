@@ -13,8 +13,6 @@ int genRandomMove(BOARD_STATE *bs);
 void printAllMoves(BOARD_STATE *bs);
 void saveMove(int from, int to, int moveType);
 int isCheck(int *board, int kingsq, int color);
-int oldisCheck(int *board, int color);
-// TODO: somehow there's an issue with the global var
 
 int sq64to120(int sq64){
 	return sq64 + 21 + 2 * (sq64 - sq64 % 8) / 8;
@@ -63,6 +61,7 @@ int getColor(int piece){
 
 void saveMove(int from, int to, int moveType){
 	// TODO: remove this, temporary workaround
+	// TODO: what if I pass total as the index?
 	int m;
 	for(m = 0 ; m < 218 ; m++){
 		if(legalMoves[m][2] == -1){
@@ -153,22 +152,20 @@ void printAllMoves(BOARD_STATE *bs){
 
 int isCheck(int *board, int kingsq, int color){
 counter++;
-	int d;
-	int cpiece;
-	int type = getType(cpiece);
+	int d, cpiece, cs;
 
 	// kings
 	for(d = 0 ; d < 8 ; d++){
 		// TODO: don't need to check if this is OFFBOARD
 		// but may run into a -1 index if using isKing
-		if(cpiece = board[kingsq + translation[4][d]] != OFFBOARD){
+		if((cpiece = board[kingsq + translation[KING][d]]) != OFFBOARD){
 			// TODO: Assert the color?
 			if(isKing[cpiece]) return true;
 		}
 	}
 	// knights
 	for(d = 0 ; d < 8 ; d++){
-		if(cpiece = board[kingsq + translation[0][d]] != OFFBOARD \
+		if((cpiece = board[kingsq + translation[0][d]]) != OFFBOARD \
 			&& getType(cpiece) == KNIGHT \
 			&& color != getColor(cpiece)){
 			return true;
@@ -181,14 +178,18 @@ counter++;
 	if(color == WHITE && board[kingsq - 11] == bP) return true;
 	// ray
 	for(d = 0 ; d < 8 ; d++){
-		while(cpiece = board[kingsq += translation[4][d]] != OFFBOARD){
-			if(cpiece != EMPTY && getColor(cpiece) != color){
-				if(d < 4){
-					if(type == BISHOP || type == QUEEN) return true;
+		cs = kingsq;
+		while((cpiece = board[cs += translation[KING][d]]) != OFFBOARD){
+			if(cpiece != EMPTY){
+				if(getColor(cpiece) != color){
+					if(d < 4){
+						if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) return true;
+					}
+					if(d >= 4 && d < 8){
+						if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) return true;
+					}
 				}
-				if(d < 8){
-					if(type == ROOK || type == QUEEN) return true;
-				}
+				break;
 			}
 		}
 	}
@@ -244,18 +245,32 @@ int enPasCorrectColor(int enPas, int side){
 	return enPas - 40 - 30 * side >= 1 && enPas - 40 - 30 * side <= 8;
 }
 
+int newBoardCheckEP(BOARD_STATE *bs, int sq, int cs){
+	int *board = bs -> board;
+	int check = false;
+	int side = bs -> side;
+	int kingsq = bs -> kingSq[side];
+
+	board[cs] = board[sq];
+	board[sq] = EMPTY;
+	board[cs + (1 - 2 * side) * 10] = EMPTY;
+	check = isCheck(board, kingsq, side);
+	board[sq] = board[cs];
+	board[cs] = EMPTY;
+	board[cs + (1 - 2 * side) * 10] = side ? wP : bP;
+	return check;
+}
 int newBoardCheck(BOARD_STATE *bs, int sq, int cs){
-	// TODO: a bit clunky passing in a board and then passing a BOARD_STATE to isCheck()
-	// hypothetical board state
 	int *board = bs -> board;
 	int check = false;
 	int capturedPiece = board[cs];
-	int kingsq = bs -> kingSq[bs -> side];
+	int side = bs -> side;
+	int kingsq = bs -> kingSq[side];
 
 	board[cs] = board[sq];
 	board[sq] = EMPTY;
 	if(kingsq == sq) kingsq = cs;
-	check = isCheck(board, kingsq, bs -> side);
+	check = isCheck(board, kingsq, side);
 	board[sq] = board[cs];
 	board[cs] = capturedPiece;
 	return check;
@@ -271,7 +286,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 	// This means that I check it prematurely in some cases
 	// but it's cleaner for now
 	// TODO: should I get color from the BOARD_STATE?
-	int i = 0, cs = sq, cs2, enPasCaptureFromSq = OFFBOARD, total = 0, d, type;
+	int i = 0, cs = sq, cs2, enPasCaptureFromSq = OFFBOARD, total = 0, d, type, cpiece;
 	int *board = bs -> board;
 
 	ASSERT(sq >= 0 && sq <= 120 && board[sq] != OFFBOARD);
@@ -284,12 +299,12 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		for(d = 0 ; d < numDirections[type] ; d++){
 			cs = sq;
 			// while sq not offboard
-			while(board[cs += translation[type][d]] != OFFBOARD){
+			while((cpiece = board[cs += translation[type][d]]) != OFFBOARD){
 				//if(!newBoardCheck(bs, sq, cs)){
-				if(board[cs] == EMPTY){
+				if(cpiece == EMPTY){
 					if(!newBoardCheck(bs, sq, cs)){ saveMove(sq, cs, 0); total++; }
 				} else {
-					if(getColor(piece) != getColor(board[cs])){
+					if(getColor(piece) != getColor(cpiece)){
 						if(!newBoardCheck(bs, sq, cs)){ saveMove(sq, cs, 4); total++; }
 					}
 					break;
@@ -351,14 +366,18 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		}
 		// enPas
 		cs = bs -> enPas;
-		if(cs != OFFBOARD && !newBoardCheck(bs, sq, cs)){
+		if(cs != OFFBOARD){
 			// enPasCaptureFromSq is the same as what it would look like to captrue TO that sq
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 + 1;
-			if(sq == enPasCaptureFromSq && enPasCorrectColor(cs, getColor(piece))){
+			if(sq == enPasCaptureFromSq \
+				&& enPasCorrectColor(cs, getColor(piece)) \
+				&& !newBoardCheckEP(bs, sq, cs)){
 				saveMove(sq, cs, 5); total++;
 			}
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 - 1;
-			if(sq == enPasCaptureFromSq && enPasCorrectColor(cs, getColor(piece))){
+			if(sq == enPasCaptureFromSq \
+				&& enPasCorrectColor(cs, getColor(piece)) \
+				&& !newBoardCheckEP(bs, sq, cs)){
 				saveMove(sq, cs, 5); total++;
 			}
 		}
@@ -468,10 +487,13 @@ void printBoard(BOARD_STATE *bs, int option){
 		printf(BLU "castlePerms: " reset "%s\n", cperms);
 		printf(BLU "white in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[WHITE], WHITE) ? "true" : "false");
 		printf(BLU "black in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[BLACK], BLACK) ? "true" : "false");
+		printf(BLU "white kingSq: " reset "%d\n", bs -> kingSq[WHITE]);
+		printf(BLU "black kingSq: " reset "%d\n", bs -> kingSq[BLACK]);
 		printf(BLU "eval: " reset "%d\n", eval(bs));
 		bs -> side = !(bs -> side);
 		// TODO: the num legal moves might be innacurate
 		// if just switching sides due to en passant?
+		// "eval for opponent" doesn't really make sense since it's not their turn
 		printf(BLU "eval for opponent: " reset "%d\n", eval(bs));
 		bs -> side = !(bs -> side);
 		genFEN(boardFEN, bs);
@@ -481,14 +503,14 @@ void printBoard(BOARD_STATE *bs, int option){
 
 int parseArgs(char *inputFEN, int argc, char *argv[]){
 	int c;
-  while((c = getopt(argc, argv, "srf:")) != -1){
+  while((c = getopt(argc, argv, "spf:")) != -1){
 		switch(c){
 			case 'f':
 				strcpy(inputFEN, optarg);
 				return FEN_MODE;
 				break;
 			case 'r':
-				return RAND_MODE;
+				return PERFT_MODE;
 				break;
 			case 's':
 				return SEARCH_MODE;
@@ -528,7 +550,7 @@ int main(int argc, char *argv[]){
 		// char testFEN[] = "5p1b/1R3QP1/3kp3/p7/1p6/8/P5P1/6K1 w - -"; // debug
 		// char testFEN[] = "8/3R4/8/8/2Q5/8/Pk2p1P1/6K1 b - -"; // debug
 		// char testFEN[] = "8/3R4/8/8/2Q4q/8/Pk4PK/8 w - -"; // debug
-		char testFEN[] = "4Q2k/3R2p1/5b1p/pq6/1p2pr2/1P5P/PR3PPK/2r5 b - -"; // debug
+		char testFEN[] = "4R3/8/8/8/1p2P3/1P3k1p/P6K/8 w - -"; // debug
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
@@ -555,41 +577,20 @@ int main(int argc, char *argv[]){
 		genFEN(outputFEN, bs);
 		printf("%s\n", outputFEN);
 	}
-	else if (mode == RAND_MODE){
+	else if (mode == PERFT_MODE){
 		printf("Checking board initialization...\n\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
 		parseFEN(testFEN, bs);
 
 		int r;
-		for(int i = 0 ; i < 175 ; i++){
-			r = genRandomMove(bs);
-			if(r == -1){
-				int side = bs -> side;
-				printf(RED " @@@@@@@@@@@@ %s WINS!\n\n\n\n\n" reset, side ? "WHITE" : "BLACK");
-				printBoard(bs, OPT_64_BOARD);
-				printBoard(bs, OPT_BOARD_STATE);
-				genFEN(outputFEN, bs);
-				printf("%s\n", outputFEN);
-				exit(0);
-			}
-			makeMove(bs, legalMoves[r][0], legalMoves[r][1], legalMoves[r][2]);
-			if(i == 173){
-				printBoard(bs, OPT_64_BOARD);
-				printBoard(bs, OPT_BOARD_STATE);
-			}
-		}
-		for(int j = 0 ; j < 175 ; j++){
-			undoMove(bs);
-		}
-		printBoard(bs, OPT_64_BOARD);
-		printBoard(bs, OPT_BOARD_STATE);
 	}
 	else if(mode == SEARCH_MODE){
 		printf("Checking board initialization...\n\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		// char testFEN[] = "rnb1kbnr/ppp1p1pp/8/3p1p2/1q3P1B/2P1P3/PP1P2PP/RNBQK1NR w KQkq -";
-		char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
+		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
+		char testFEN[] = "R7/8/8/8/4P3/1P5K/P7/1k6 w - -"; // debug
 		parseFEN(testFEN, bs);
 
 		int myMoves[218][4];
