@@ -24,7 +24,6 @@ function configureCanvas(){
 	let canvas = document.getElementById("canv");
 	canvas.width = canvSize;
 	canvas.height = canvSize;
-	//canvas.addEventListener("mousemove", (event) => {trackmouse(event);});
 	canvas.addEventListener("mousedown", (event) => {trackmouse(event);});
 }
 
@@ -338,7 +337,8 @@ function formatPOSTData(object) {
 var randMove = function(){
 	let fen = genFEN();
 	let xhr = new XMLHttpRequest();
-	let url = "http://192.168.1.90:5812/fen?fen=" + fen;
+	// let url = "http://192.168.1.90:5812/fen?fen=" + fen;
+	let url = "https://www.schlamalama.com:5812/fen?fen=" + fen;
 	console.log("req: " + url);
 
 	xhr.open('GET', url);
