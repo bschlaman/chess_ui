@@ -16,7 +16,7 @@ if(!(n)){ \
 enum { false, true };
 
 #define START_FEN  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-#define FEN1 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
+#define MAXM_FEN "R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - -"
 // good for white king in check
 #define FEN2 "rnbq2n1/ppp2ppp/5Nk1/1b6/4PPp1/2P5/PP2K1PP/RNBQ1BR1 w KQkq f3 2 15"
 #define FEN3 "rnkR4/4bq2/p1n4r/Pp1PppNP/1P6/B1PP4/R2K1P2/1N1B4 b KQkq -"
@@ -132,3 +132,7 @@ extern int randInt(int lb, int ub);
 extern int negaMax(BOARD_STATE *bs, int depth);
 extern int eval(BOARD_STATE *bs);
 extern int treeSearch(BOARD_STATE *bs, int depth);
+extern U64 perft(BOARD_STATE *bs, int depth);
+extern U64 perft2(BOARD_STATE *bs, int depth);
+// test.c
+extern int testMoves();

@@ -220,6 +220,50 @@ int treeSearch(BOARD_STATE *bs, int depth){
 }
 
 
+U64 perft(BOARD_STATE *bs, int depth){
+	int localLM[218][4];
+	int num, m;
+	U64 nodes = 0;
+	int from, to, moveType;
+
+	if(depth == 0) return 1ULL;
+
+	num = genLegalMoves(bs);
+	memcpy(localLM, legalMoves, 218 * sizeof(localLM[0]));
+
+  for (m = 0 ; m < num ; m++) {
+		from = localLM[m][0];
+		to = localLM[m][1];
+		moveType = localLM[m][2];
+		makeMove(bs, from, to, moveType);
+		nodes += perft(bs, depth - 1);
+		undoMove(bs);
+  }
+	return nodes;
+}
+
+U64 perft2(BOARD_STATE *bs, int depth){
+	int localLM[218][4];
+	int num, m;
+	U64 nodes = 0;
+	int from, to, moveType;
+
+
+	num = genLegalMoves(bs);
+	memcpy(localLM, legalMoves, 218 * sizeof(localLM[0]));
+
+	if(depth == 1) return num;
+
+  for (m = 0 ; m < num ; m++) {
+		from = localLM[m][0];
+		to = localLM[m][1];
+		moveType = localLM[m][2];
+		makeMove(bs, from, to, moveType);
+		nodes += perft(bs, depth - 1);
+		undoMove(bs);
+  }
+	return nodes;
+}
 
 
 

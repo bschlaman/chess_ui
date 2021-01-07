@@ -509,7 +509,7 @@ int parseArgs(char *inputFEN, int argc, char *argv[]){
 				strcpy(inputFEN, optarg);
 				return FEN_MODE;
 				break;
-			case 'r':
+			case 'p':
 				return PERFT_MODE;
 				break;
 			case 's':
@@ -524,7 +524,7 @@ int parseArgs(char *inputFEN, int argc, char *argv[]){
 					fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
 				return -1;
 			default:
-				fprintf(stderr, "Error with arg parsing", optopt);
+				fprintf(stderr, "Error with arg parsing\n", optopt);
 				exit(1);
 		}
 	}
@@ -544,19 +544,25 @@ int main(int argc, char *argv[]){
 
 	// NORMAL_MODE - print out all legal moves of a pos
 	if(mode == NORMAL_MODE){
-		printf("Checking board initialization...\n\n");
+		printf("Checking board initialization...\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
+		printf("Checking movegen test...\n\n");
+		ASSERT(testMoves());
 		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
-		// char testFEN[] = "5p1b/1R3QP1/3kp3/p7/1p6/8/P5P1/6K1 w - -"; // debug
-		// char testFEN[] = "8/3R4/8/8/2Q5/8/Pk2p1P1/6K1 b - -"; // debug
-		// char testFEN[] = "8/3R4/8/8/2Q4q/8/Pk4PK/8 w - -"; // debug
-		char testFEN[] = "4R3/8/8/8/1p2P3/1P3k1p/P6K/8 w - -"; // debug
+		char testFEN[] = "rnbqkbnr/pppp3p/8/5Pp1/8/8/PPPPP1PP/RN2K3 w KQkq g6"; // debug
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
-		printAllMoves(bs);
+
+		makeMove(bs, 56, 47, 5);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+		undoMove(bs);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
 	}
-	// FEN_MODE
+
+	// FEN_MODE - return fen of best move
 	else if(mode == FEN_MODE){
 		int myMoves[218][4];
 		parseFEN(inputFEN, bs);
@@ -577,20 +583,34 @@ int main(int argc, char *argv[]){
 		genFEN(outputFEN, bs);
 		printf("%s\n", outputFEN);
 	}
-	else if (mode == PERFT_MODE){
-		printf("Checking board initialization...\n\n");
-		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
-		char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
-		parseFEN(testFEN, bs);
 
-		int r;
-	}
-	else if(mode == SEARCH_MODE){
-		printf("Checking board initialization...\n\n");
+	// PERFT_MODE - checks number of positions
+	else if (mode == PERFT_MODE){
+		printf("Checking board initialization...\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
-		// char testFEN[] = "rnb1kbnr/ppp1p1pp/8/3p1p2/1q3P1B/2P1P3/PP1P2PP/RNBQK1NR w KQkq -";
-		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
-		char testFEN[] = "R7/8/8/8/4P3/1P5K/P7/1k6 w - -"; // debug
+		printf("Checking movegen test...\n\n");
+		ASSERT(testMoves());
+
+		char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
+		parseFEN(START_FEN, bs);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+
+		int tot = (int)perft(bs, 5);
+		// int tot = (int)perft2(bs, 5);
+		printf(RED "total: " reset "%i\n", tot);
+		printf(RED "\n====== AFTER UNDOS ========\n" reset);
+		printBoard(bs, OPT_64_BOARD);
+		printBoard(bs, OPT_BOARD_STATE);
+	}
+
+	// SEARCH_MODE - output first layer of search
+	else if(mode == SEARCH_MODE){
+		printf("Checking board initialization...\n");
+		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
+		printf("Checking movegen test...\n\n");
+		ASSERT(testMoves());
+		char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
 		parseFEN(testFEN, bs);
 
 		int myMoves[218][4];

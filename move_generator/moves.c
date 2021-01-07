@@ -40,7 +40,7 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 	ms -> enPas = bs -> enPas;
 	ms -> castlePermission = bs -> castlePermission;
 	if(moveType == 5){
-		capturedPiece = bs -> board[to + (1 - 2 * !getColor(capturedPiece)) * 10];
+		capturedPiece = bs -> board[to + (1 - 2 * bs -> side) * 10];
 	} else { capturedPiece = bs -> board[to]; }
 	ms -> capturedPiece = capturedPiece;
 	// 2) increment ply (index)
