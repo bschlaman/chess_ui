@@ -141,36 +141,12 @@ int randInt(int lb, int ub){
 	return rand() % (ub - lb + 1) + lb;
 }
 
-int negaMax(BOARD_STATE *bs, int depth){
-	if(depth == 0) return eval(bs);
-	int max = -100000, score;
-
-	genLegalMoves(bs);
-	int cpy[218][4];
-	for(int m = 0 ; m < 218 ; m++){
-		cpy[m][2] = -1;
-	}
-	// memcpy(cpy, legalMoves, numMoves * sizeof(cpy[0]));
-	memcpy(cpy, legalMoves, 218 * sizeof(cpy[0]));
-
-	int i = 0;
-	while(cpy[i][2] != -1){
-		makeMove(bs, legalMoves[i][0], legalMoves[i][1], legalMoves[i][2]);
-		score = -1 * negaMax(bs, depth - 1);
-		undoMove(bs);
-		if(score > max) max = score;
-		i++;
-	}
-	return max;
-}
-
 int treeSearch(BOARD_STATE *bs, int depth){
 	if(depth == 0){ return eval(bs); }
 	int m, from, to, moveType;
 	int posEval, b = 0;
-	genLegalMoves(bs);
-	int localLM[218][4];
-	memcpy(localLM, legalMoves, 218 * sizeof(localLM[0]));
+	int localLM[255][4];
+	genLegalMoves(bs, localLM);
 
 	// // debug
 	// if(depth == 2){
@@ -221,17 +197,16 @@ int treeSearch(BOARD_STATE *bs, int depth){
 
 
 U64 perft(BOARD_STATE *bs, int depth){
-	int localLM[218][4];
+	int localLM[255][4];
 	int num, m;
 	U64 nodes = 0;
 	int from, to, moveType;
 
 	if(depth == 0) return 1ULL;
 
-	num = genLegalMoves(bs);
-	memcpy(localLM, legalMoves, 218 * sizeof(localLM[0]));
+	num = genLegalMoves(bs, localLM);
 
-  for (m = 0 ; m < num ; m++) {
+  for(m = 0 ; m < num ; m++) {
 		from = localLM[m][0];
 		to = localLM[m][1];
 		moveType = localLM[m][2];
@@ -243,18 +218,17 @@ U64 perft(BOARD_STATE *bs, int depth){
 }
 
 U64 perft2(BOARD_STATE *bs, int depth){
-	int localLM[218][4];
+	int localLM[255][4];
 	int num, m;
 	U64 nodes = 0;
 	int from, to, moveType;
 
 
-	num = genLegalMoves(bs);
-	memcpy(localLM, legalMoves, 218 * sizeof(localLM[0]));
+	num = genLegalMoves(bs, localLM);
 
 	if(depth == 1) return num;
 
-  for (m = 0 ; m < num ; m++) {
+  for(m = 0 ; m < num ; m++) {
 		from = localLM[m][0];
 		to = localLM[m][1];
 		moveType = localLM[m][2];

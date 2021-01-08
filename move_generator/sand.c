@@ -101,12 +101,12 @@ int testEval(){
 	return randInt(-5, 5);
 }
 
-// int legalMoves[218][3];
+// int legalMoves[255][3];
 int testGenLegalMoves(){
 	int i, total = 0;
 
 	// init legalMoves
-	for(int m  = 0 ; m < 218 ; m++){
+	for(int m  = 0 ; m < 255 ; m++){
 		legalMoves[m][2] = 0;
 	}
 	total = randInt(2,2);
@@ -124,11 +124,11 @@ void printArr(int arr[][3]){
 
 int miniMax(int depth){
 	if(depth == 0) return testEval(NULL);
-	int max = -21800, score = 0;
+	int max = -25500, score = 0;
 	int numMoves = testGenLegalMoves();
 	printf(CYN "numMoves: %d\n" reset, numMoves);
 
-	int cpy[218][3];
+	int cpy[255][3];
 	memcpy(cpy, legalMoves, numMoves * sizeof(cpy[0]));
 
 	//printArr(legalMoves);
@@ -146,18 +146,23 @@ int miniMax(int depth){
 	return max;
 }
 
+int genLeg(int moves[][4]){
+	for(int i = 0 ; i < 10 ; i++){
+		moves[i][2] = -1;
+	}
+}
+
 int main(int argc, char *argv[]){
 	initRand();
 	// arg stuff
 	char inputFEN[99];
 	int res = parseArgs(inputFEN, argc, argv);
 
-	printf(CYN "test: %c\n" reset, 0 - '0');
-	printf(CYN "test: %c\n" reset, 0 + '0');
-	int rank;
-	for(int i = 0 ; i < 64 ; i++){
-		rank = 7 - (i - i % 8) / 8 ;
-		printf("%d\n", rank);
+	int moves[255][4];
+	genLeg(moves);
+
+	for(int i = 0 ; i < 30 ; i++){
+		printf("%d ", moves[i][2]);
 	}
 
 	return 0;

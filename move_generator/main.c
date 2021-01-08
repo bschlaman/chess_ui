@@ -8,10 +8,10 @@
 
 
 void printBoard(BOARD_STATE *bs, int options);
-int pieceMoves(BOARD_STATE *bs, int piece, int sq);
+int pieceMoves(BOARD_STATE *bs, int piece, int sq, int moves[][4], int offset);
 int genRandomMove(BOARD_STATE *bs);
-void printAllMoves(BOARD_STATE *bs);
-void saveMove(int from, int to, int moveType);
+void printPieceMoves(BOARD_STATE *bs);
+void saveMove(int moves[][4], int i, int from, int to, int moveType);
 int isCheck(int *board, int kingsq, int color);
 
 int sq64to120(int sq64){
@@ -59,38 +59,31 @@ int getColor(int piece){
 	return piece > 6 && piece < 13;
 }
 
-void saveMove(int from, int to, int moveType){
-	// TODO: remove this, temporary workaround
-	// TODO: what if I pass total as the index?
-	int m;
-	for(m = 0 ; m < 218 ; m++){
-		if(legalMoves[m][2] == -1){
-			legalMoves[m][0] = from;
-			legalMoves[m][1] = to;
-			legalMoves[m][2] = moveType;
-			break;
-		}
-	}
+void saveMove(int moves[][4], int i, int from, int to, int moveType){
+	moves[i][0] = from;
+	moves[i][1] = to;
+	moves[i][2] = moveType;
 }
 
-int genLegalMoves(BOARD_STATE *bs){
+int genLegalMoves(BOARD_STATE *bs, int moves[][4]){
 	int i, total = 0;
 	int sq, piece, side;
 	side = bs -> side;
 
-	initLegalMoves();
 	for(i = 0 ; i < 64 ; i++){
 		sq = sq64to120(i);
 		piece = bs -> board[sq];
 		if(piece != EMPTY && getColor(piece) == side){
-			total += pieceMoves(bs, piece, sq);
+			total += pieceMoves(bs, piece, sq, moves, total);
 		}
 	}
+	moves[total][2] = -1;
 	return total;
 }
 
 int genRandomMove(BOARD_STATE *bs){
-	int total = genLegalMoves(bs);
+	int moves[255][4];
+	int total = genLegalMoves(bs, moves);
 	if(total > 0){
 		int r = rand() % total;
 		return r;
@@ -114,10 +107,13 @@ void printMove(int m, int from, int to, int moveType){
 void printLegalMoves(BOARD_STATE *bs){
 	int m, from, to, moveType;
 	char sqfr[3];
-	for(m = 0 ; legalMoves[m][2] != -1 ; m++){
-		from = legalMoves[m][0];
-		to = legalMoves[m][1];
-		moveType = legalMoves[m][2];
+	int moves[255][4];
+	int total = genLegalMoves(bs, moves);
+	// TODO: need to find a better condition to break for loop
+	for(m = 0 ; moves[m][2] != -1 ; m++){
+		from = moves[m][0];
+		to = moves[m][1];
+		moveType = moves[m][2];
 
 		printf(YEL "      move %d: " reset, m);
 		getAlgebraic(sqfr, from);
@@ -132,18 +128,18 @@ void printLegalMoves(BOARD_STATE *bs){
 	}
 }
 
-void printAllMoves(BOARD_STATE *bs){
+void printPieceMoves(BOARD_STATE *bs){
 	int i, m, piece, sq, total = 0;
 	int side = bs -> side;
 	int from, to, moveType;
+	int moves[255][4];
 
 	for(i = 0 ; i < 64 ; i++){
-		initLegalMoves();
 		sq = sq64to120(i);
 		piece = bs -> board[sq];
 		if(piece != EMPTY && getColor(piece) == side){
 			printf(GRN " == PIECE: %c\n" reset, pieceChar[piece]);
-			total += pieceMoves(bs, piece, sq);
+			total += pieceMoves(bs, piece, sq, moves, total);
 			printLegalMoves(bs);
 		}
 	}
@@ -276,7 +272,7 @@ int newBoardCheck(BOARD_STATE *bs, int sq, int cs){
 	return check;
 }
 
-int pieceMoves(BOARD_STATE *bs, int piece, int sq){
+int pieceMoves(BOARD_STATE *bs, int piece, int sq, int moves[][4], int offset){
 	// plan here is to use the 120 sq board
 	// and move in particular "directions"
 	// until the piece is OFFBOARD
@@ -302,10 +298,10 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			while((cpiece = board[cs += translation[type][d]]) != OFFBOARD){
 				//if(!newBoardCheck(bs, sq, cs)){
 				if(cpiece == EMPTY){
-					if(!newBoardCheck(bs, sq, cs)){ saveMove(sq, cs, 0); total++; }
+					if(!newBoardCheck(bs, sq, cs)){ saveMove(moves, total + offset, sq, cs, 0); total++; }
 				} else {
 					if(getColor(piece) != getColor(cpiece)){
-						if(!newBoardCheck(bs, sq, cs)){ saveMove(sq, cs, 4); total++; }
+						if(!newBoardCheck(bs, sq, cs)){ saveMove(moves, total + offset, sq, cs, 4); total++; }
 					}
 					break;
 				}
@@ -321,12 +317,12 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 		cs = sq - (1 - 2 * getColor(piece)) * 10;
 		if(board[cs] == EMPTY && !newBoardCheck(bs, sq, cs)){
 			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
-				saveMove(sq, cs, 8); total++;
-				saveMove(sq, cs, 9); total++;
-				saveMove(sq, cs, 10); total++;
-				saveMove(sq, cs, 11); total++;
+				saveMove(moves, total + offset, sq, cs, 8); total++;
+				saveMove(moves, total + offset, sq, cs, 9); total++;
+				saveMove(moves, total + offset, sq, cs, 10); total++;
+				saveMove(moves, total + offset, sq, cs, 11); total++;
 			} else {
-				saveMove(sq, cs, 0); total++;
+				saveMove(moves, total + offset, sq, cs, 0); total++;
 			}
 		}
 		// forward 2
@@ -334,7 +330,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			cs = sq - (1 - 2 * getColor(piece)) * 20;
 			cs2 = sq - (1 - 2 * getColor(piece)) * 10;
 			if(board[cs] == EMPTY && board[cs2] == EMPTY && !newBoardCheck(bs, sq, cs)){
-				saveMove(sq, cs, 1); total++;
+				saveMove(moves, total + offset, sq, cs, 1); total++;
 			}
 		}
 		// captures
@@ -343,12 +339,12 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			&& getColor(piece) != getColor(board[cs]) \
 			&& !newBoardCheck(bs, sq, cs)){
 			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
-				saveMove(sq, cs, 12); total++;
-				saveMove(sq, cs, 13); total++;
-				saveMove(sq, cs, 14); total++;
-				saveMove(sq, cs, 15); total++;
+				saveMove(moves, total + offset, sq, cs, 12); total++;
+				saveMove(moves, total + offset, sq, cs, 13); total++;
+				saveMove(moves, total + offset, sq, cs, 14); total++;
+				saveMove(moves, total + offset, sq, cs, 15); total++;
 			} else {
-				saveMove(sq, cs, 4); total++;
+				saveMove(moves, total + offset, sq, cs, 4); total++;
 			}
 		}
 		cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
@@ -356,12 +352,12 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			&& getColor(piece) != getColor(board[cs]) \
 			&& !newBoardCheck(bs, sq, cs)){
 			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
-				saveMove(sq, cs, 12); total++;
-				saveMove(sq, cs, 13); total++;
-				saveMove(sq, cs, 14); total++;
-				saveMove(sq, cs, 15); total++;
+				saveMove(moves, total + offset, sq, cs, 12); total++;
+				saveMove(moves, total + offset, sq, cs, 13); total++;
+				saveMove(moves, total + offset, sq, cs, 14); total++;
+				saveMove(moves, total + offset, sq, cs, 15); total++;
 			} else {
-				saveMove(sq, cs, 4); total++;
+				saveMove(moves, total + offset, sq, cs, 4); total++;
 			}
 		}
 		// enPas
@@ -372,13 +368,13 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			if(sq == enPasCaptureFromSq \
 				&& enPasCorrectColor(cs, getColor(piece)) \
 				&& !newBoardCheckEP(bs, sq, cs)){
-				saveMove(sq, cs, 5); total++;
+				saveMove(moves, total + offset, sq, cs, 5); total++;
 			}
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 - 1;
 			if(sq == enPasCaptureFromSq \
 				&& enPasCorrectColor(cs, getColor(piece)) \
 				&& !newBoardCheckEP(bs, sq, cs)){
-				saveMove(sq, cs, 5); total++;
+				saveMove(moves, total + offset, sq, cs, 5); total++;
 			}
 		}
 	}
@@ -393,7 +389,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			&& !newBoardCheck(bs, sq, sq + 2) \
 			&& board[96] == EMPTY && board[97] == EMPTY){
 			ASSERT(sq == 95);
-			saveMove(sq, sq + 2, 2); total++;
+			saveMove(moves, total + offset, sq, sq + 2, 2); total++;
 		}
 		if(cperm & WQCA \
 			&& !newBoardCheck(bs, sq, sq) \
@@ -401,7 +397,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			&& !newBoardCheck(bs, sq, sq - 2) \
 			&& board[92] == EMPTY && board[93] == EMPTY && board[94] == EMPTY){
 			ASSERT(sq == 95);
-			saveMove(sq, sq - 2, 3); total++;
+			saveMove(moves, total + offset, sq, sq - 2, 3); total++;
 		}
 	}
 	if(piece == bK){
@@ -411,7 +407,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			&& !newBoardCheck(bs, sq, sq + 2) \
 			&& board[26] == EMPTY && board[27] == EMPTY){
 			ASSERT(sq == 25);
-			saveMove(sq, sq + 2, 2); total++;
+			saveMove(moves, total + offset, sq, sq + 2, 2); total++;
 		}
 		if(cperm & BQCA \
 			&& !newBoardCheck(bs, sq, sq) \
@@ -419,7 +415,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq){
 			&& !newBoardCheck(bs, sq, sq - 2) \
 			&& board[22] == EMPTY && board[23] == EMPTY && board[24] == EMPTY){
 			ASSERT(sq == 25);
-			saveMove(sq, sq - 2, 3); total++;
+			saveMove(moves, total + offset, sq, sq - 2, 3); total++;
 		}
 	}
 	return total;
@@ -544,30 +540,29 @@ int main(int argc, char *argv[]){
 
 	// NORMAL_MODE - print out all legal moves of a pos
 	if(mode == NORMAL_MODE){
+		// checks
 		printf("Checking board initialization...\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		printf("Checking movegen test...\n\n");
 		ASSERT(testMoves());
-		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
+
+		// print board
 		char testFEN[] = "rnbqkbnr/pppp3p/8/5Pp1/8/8/PPPPP1PP/RN2K3 w KQkq g6"; // debug
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
 
-		makeMove(bs, 56, 47, 5);
-		printBoard(bs, OPT_64_BOARD);
-		printBoard(bs, OPT_BOARD_STATE);
-		undoMove(bs);
-		printBoard(bs, OPT_64_BOARD);
-		printBoard(bs, OPT_BOARD_STATE);
+		// print moves
+		int myMoves[255][4];
+		int total = genLegalMoves(bs, myMoves);
+		printLegalMoves(bs);
 	}
 
 	// FEN_MODE - return fen of best move
 	else if(mode == FEN_MODE){
-		int myMoves[218][4];
+		int myMoves[255][4];
 		parseFEN(inputFEN, bs);
-		int total = genLegalMoves(bs);
-		memcpy(myMoves, legalMoves, 218 * sizeof(myMoves[0]));
+		int total = genLegalMoves(bs, myMoves);
 		int best = -11111;
 		int b = -1;
 		for(int m = 0 ; myMoves[m][2] != -1 ; m++){
@@ -591,7 +586,6 @@ int main(int argc, char *argv[]){
 		printf("Checking movegen test...\n\n");
 		ASSERT(testMoves());
 
-		char testFEN[] = "rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR w KQkq g3";
 		parseFEN(START_FEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
@@ -613,9 +607,8 @@ int main(int argc, char *argv[]){
 		char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
 		parseFEN(testFEN, bs);
 
-		int myMoves[218][4];
-		int total = genLegalMoves(bs);
-		memcpy(myMoves, legalMoves, 218 * sizeof(myMoves[0]));
+		int myMoves[255][4];
+		int total = genLegalMoves(bs, myMoves);
 
 		for(int m = 0 ; myMoves[m][2] != -1 ; m++){
 			printf("evaluating: ");

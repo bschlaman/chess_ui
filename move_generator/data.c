@@ -15,9 +15,7 @@ const int translation[][8] = {
 	{-11, 9, 11, -9, -10, -1, 10, 1}  // kings 4
 };
 
-// TODO: this should be >218 since I fill with -1
-// and it will be filled if 218 moves are on the board
-int legalMoves[218][4];
+int legalMoves[255][4];
 int mode = NORMAL_MODE;
 int counter = 0;
 

@@ -4,8 +4,9 @@
 
 int testMoves(){
 	BOARD_STATE *tbs = initGame();
+	int moves[255][4];
 	parseFEN(MAXM_FEN, tbs);
-	int total = genLegalMoves(tbs);
+	int total = genLegalMoves(tbs, moves);
 	free(tbs);
 	return total == 218;
 }

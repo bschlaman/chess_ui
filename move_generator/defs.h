@@ -116,7 +116,7 @@ extern int getType(int piece);
 extern int getColor(int piece);
 extern void getAlgebraic(char *sqfr, int sq120);
 extern void resetBoard(BOARD_STATE *bs);
-extern int genLegalMoves(BOARD_STATE *bs);
+extern int genLegalMoves(BOARD_STATE *bs, int moves[][4]);
 extern int newBoardCheck(BOARD_STATE *bs, int sq, int cs);
 extern void printMove(int m, int from, int to, int moveType);
 extern void printLegalMoves(BOARD_STATE *bs);
