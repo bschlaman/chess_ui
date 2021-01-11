@@ -57,16 +57,18 @@ enum { KNIGHT, BISHOP, ROOK, QUEEN, KING };
 // 15	1	1	1	1	queen-promo capture
 enum { PROMOTION = 8, CAPTURE = 4, SPECIAL1 = 2, SPECIAL2 = 1 };
 
-typedef unsigned short int move;
+// 000000 000000 0000
+// from   to     moveType
+typedef unsigned short MOVE;
 
 typedef unsigned long long U64;
 
 typedef struct {
-	move fromto;
+	MOVE move;
 	int enPas;
 	int castlePermission;
 	int capturedPiece;
-} MOVE_STACK;
+} MOVE_IRREV;
 
 typedef struct {
 	// rename to pieces?
@@ -82,7 +84,7 @@ typedef struct {
 	// Hash key, unique representation of board
 	U64 posKey;
 
-	MOVE_STACK history[200];
+	MOVE_IRREV history[200];
 } BOARD_STATE;
 
 
@@ -102,8 +104,6 @@ extern const int OFFBOARD;
 extern const int numDirections[];
 extern const int translation[][8];
 extern int counter;
-// TODO: remove this, temporary workaround
-extern int legalMoves[][4];
 /* FUNCTIONS */
 // fen.c
 extern int parseFEN(char *fen, BOARD_STATE *bs);
@@ -116,16 +116,20 @@ extern int getType(int piece);
 extern int getColor(int piece);
 extern void getAlgebraic(char *sqfr, int sq120);
 extern void resetBoard(BOARD_STATE *bs);
-extern int genLegalMoves(BOARD_STATE *bs, int moves[][4]);
+extern int genLegalMoves(BOARD_STATE *bs, MOVE moves[]);
 extern int newBoardCheck(BOARD_STATE *bs, int sq, int cs);
-extern void printMove(int m, int from, int to, int moveType);
+extern void printMove(int m, MOVE move);
 extern void printLegalMoves(BOARD_STATE *bs);
 // init.c
 extern void initRand();
 extern BOARD_STATE* initGame();
 extern void initLegalMoves();
 // moves.c
-extern void makeMove(BOARD_STATE *bs, int from, int to, int moveType);
+extern int getFrom(MOVE m);
+extern int getTo(MOVE m);
+extern int getMType(MOVE m);
+extern MOVE buildMove(int from, int to, int movetype);
+extern void makeMove(BOARD_STATE *bs, MOVE move);
 extern void undoMove(BOARD_STATE *bs);
 // eval.c
 extern int randInt(int lb, int ub);

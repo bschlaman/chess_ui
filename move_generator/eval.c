@@ -143,10 +143,10 @@ int randInt(int lb, int ub){
 
 int treeSearch(BOARD_STATE *bs, int depth){
 	if(depth == 0){ return eval(bs); }
-	int m, from, to, moveType;
+	int m;
 	int posEval, b = 0;
-	int localLM[255][4];
-	genLegalMoves(bs, localLM);
+	MOVE localLM[255];
+	int total = genLegalMoves(bs, localLM);
 
 	// // debug
 	// if(depth == 2){
@@ -164,17 +164,12 @@ int treeSearch(BOARD_STATE *bs, int depth){
 	// }
 
 	int bestScore = -100000;
-	for(m = 0 ; localLM[m][2] != -1 ; m++){
+	for(m = 0 ; m < total ; m++){
 		// debug
 		// if(depth == 2 && m > 28) return 1;
 		// if(depth == 2 && m > 28) return 1;
-		from = localLM[m][0];
-		to = localLM[m][1];
-		moveType = localLM[m][2];
 
-		// printf("response: ");
-		// printMove(m, legalMoves[m][0], legalMoves[m][1], legalMoves[m][2]);
-		makeMove(bs, from, to, moveType);
+		makeMove(bs, localLM[m]);
 		posEval = -1 * treeSearch(bs, depth - 1);
 		undoMove(bs);
 
@@ -197,20 +192,16 @@ int treeSearch(BOARD_STATE *bs, int depth){
 
 
 U64 perft(BOARD_STATE *bs, int depth){
-	int localLM[255][4];
+	MOVE localLM[255];
 	int num, m;
 	U64 nodes = 0;
-	int from, to, moveType;
 
 	if(depth == 0) return 1ULL;
 
 	num = genLegalMoves(bs, localLM);
 
   for(m = 0 ; m < num ; m++) {
-		from = localLM[m][0];
-		to = localLM[m][1];
-		moveType = localLM[m][2];
-		makeMove(bs, from, to, moveType);
+		makeMove(bs, localLM[m]);
 		nodes += perft(bs, depth - 1);
 		undoMove(bs);
   }
@@ -218,10 +209,9 @@ U64 perft(BOARD_STATE *bs, int depth){
 }
 
 U64 perft2(BOARD_STATE *bs, int depth){
-	int localLM[255][4];
+	MOVE localLM[255];
 	int num, m;
 	U64 nodes = 0;
-	int from, to, moveType;
 
 
 	num = genLegalMoves(bs, localLM);
@@ -229,10 +219,7 @@ U64 perft2(BOARD_STATE *bs, int depth){
 	if(depth == 1) return num;
 
   for(m = 0 ; m < num ; m++) {
-		from = localLM[m][0];
-		to = localLM[m][1];
-		moveType = localLM[m][2];
-		makeMove(bs, from, to, moveType);
+		makeMove(bs, localLM[m]);
 		nodes += perft(bs, depth - 1);
 		undoMove(bs);
   }

@@ -2,27 +2,25 @@
 #include "defs.h"
 #include "colors.h"
 
-// to know in order to undo a move:
-// from-to
-// captured piece
-// // make
-// push (position.irreversibleAspects);
-// ply++;
-// update (position, move)
-// ...
-// // unmake
-// ply--;
-// pop (position.irreversibleAspects);
-// // position is restored from stack
-
+int getFrom(MOVE m){
+	return sq64to120(m >> 10);
+}
+int getTo(MOVE m){
+	return sq64to120((m >> 4) & 63);
+}
+int getMType(MOVE m){
+	return m & 15;
+}
+MOVE buildMove(int from, int to, int moveType){
+	return 0 | sq120to64(from) << 10 | sq120to64(to) << 4 | moveType;
+}
 // TODO: get rid of moveType and only use the 16-bit fromto
 // should split this into reversible and irreversible aspects
 // so that the reversible aspects can be used
 // both in make and unmake
 
-void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
+void makeMove(BOARD_STATE *bs, MOVE move){
 	// TODO: looking up the board is very expensive!!!
-	// TODO: should I be using a pointer to a MOVE_STACK?
 	// TODO: I think the logic for 3) is wonky...
 	// I should be using nested if statements in a for loop
 	// for(i = 1 ; i < 16 ; i = i * 2)
@@ -30,13 +28,13 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 	// if moveType == 4
 
 	// 1) update the move stack with info about current pos
-	MOVE_STACK *ms = &(bs -> history[bs -> ply]);
+	// TODO: change ms to mi or something
+	MOVE_IRREV *ms = &(bs -> history[bs -> ply]);
 	int capturedPiece;
-	unsigned short int fromto = 0;
-	fromto |= sq120to64(from) << 10;
-	fromto |= sq120to64(to) << 4;
-	fromto |= moveType;
-	ms -> fromto = fromto;
+	int from = getFrom(move);
+	int to = getTo(move);
+	int moveType = getMType(move);
+	ms -> move = move;
 	ms -> enPas = bs -> enPas;
 	ms -> castlePermission = bs -> castlePermission;
 	if(moveType == 5){
@@ -155,12 +153,12 @@ void undoMove(BOARD_STATE *bs){
 	// 1) decrement ply
 	bs -> ply--;
 
-	MOVE_STACK *ms = &(bs -> history[bs -> ply]);
+	MOVE_IRREV *ms = &(bs -> history[bs -> ply]);
 	int capturedPiece = ms -> capturedPiece;
-	unsigned short int fromto = ms -> fromto;
-	from = sq64to120(fromto >> 10);
-	to = sq64to120((fromto >> 4) & 63);
-	moveType = fromto & 15;
+	MOVE move = ms -> move;
+	from = getFrom(move);
+	to = getTo(move);
+	moveType = getMType(move);
 
 	// 2) restore reversible
 	int *board = bs -> board;

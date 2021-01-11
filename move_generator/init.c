@@ -14,9 +14,3 @@ BOARD_STATE* initGame(){
 	return bs;
 }
 
-void initLegalMoves(){
-	// TODO: remove this, temporary workaround
-	for(int m  = 0 ; m < 255 ; m++){
-		legalMoves[m][2] = -1;
-	}
-}
