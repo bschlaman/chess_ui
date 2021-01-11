@@ -67,14 +67,29 @@ int genLegalMoves(BOARD_STATE *bs, MOVE moves[]){
 	int i, total = 0;
 	int sq, piece, side;
 	side = bs -> side;
+	int kingsq = bs -> kingSq[side];
+	int d = isCheck(bs -> board, kingsq, side);
 
-	for(i = 0 ; i < 64 ; i++){
-		sq = sq64to120(i);
-		piece = bs -> board[sq];
-		if(piece != EMPTY && getColor(piece) == side){
-			total += pieceMoves(bs, piece, sq, moves, total);
+	// if king is in check
+	if(d >= 0){
+		for(i = 0 ; i < 64 ; i++){
+			sq = sq64to120(i);
+			piece = bs -> board[sq];
+			if(piece != EMPTY && getColor(piece) == side){
+				if(sq == kingsq) total += kingCheckMoves(bs, piece, sq, moves, total);
+				total += pieceCheckMoves(bs, piece, sq, moves, total);
+			}
+		}
+	} else {
+		for(i = 0 ; i < 64 ; i++){
+			sq = sq64to120(i);
+			piece = bs -> board[sq];
+			if(piece != EMPTY && getColor(piece) == side){
+				total += pieceMoves(bs, piece, sq, moves, total);
+			}
 		}
 	}
+
 	return total;
 }
 
@@ -148,6 +163,12 @@ void printPieceMoves(BOARD_STATE *bs){
 	printf(BLU "total moves in pos: " reset "%d\n", total);
 }
 
+// returns the direction, 0 -> 15
+// 0 8 0 - 0
+// 9 0 4 3 -
+// 0 5 k 7 0
+// - 1 6 2 -
+// 0 - 0 - 0
 int isCheck(int *board, int kingsq, int color){
 counter++;
 	int d, cpiece, cs;
@@ -158,7 +179,7 @@ counter++;
 		// but may run into a -1 index if using isKing
 		if((cpiece = board[kingsq + translation[KING][d]]) != OFFBOARD){
 			// TODO: Assert the color?
-			if(isKing[cpiece]) return true;
+			if(isKing[cpiece]) return d;
 		}
 	}
 	// knights
@@ -166,14 +187,14 @@ counter++;
 		if((cpiece = board[kingsq + translation[0][d]]) != OFFBOARD \
 			&& getType(cpiece) == KNIGHT \
 			&& color != getColor(cpiece)){
-			return true;
+			return d + 8;
 		}
 	}
 	// pawns
-	if(color == BLACK && board[kingsq + 9] == wP) return true;
-	if(color == BLACK && board[kingsq + 11] == wP) return true;
-	if(color == WHITE && board[kingsq - 9] == bP) return true;
-	if(color == WHITE && board[kingsq - 11] == bP) return true;
+	if(color == BLACK && board[kingsq + 9] == wP) return 1;
+	if(color == BLACK && board[kingsq + 11] == wP) return 2;
+	if(color == WHITE && board[kingsq - 9] == bP) return 0;
+	if(color == WHITE && board[kingsq - 11] == bP) return 3;
 	// ray
 	for(d = 0 ; d < 8 ; d++){
 		cs = kingsq;
@@ -181,17 +202,17 @@ counter++;
 			if(cpiece != EMPTY){
 				if(getColor(cpiece) != color){
 					if(d < 4){
-						if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) return true;
+						if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) return d;
 					}
 					if(d >= 4 && d < 8){
-						if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) return true;
+						if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) return d;
 					}
 				}
 				break;
 			}
 		}
 	}
-	return false;
+	return -1;
 }
 
 int enPasCorrectColor(int enPas, int side){
