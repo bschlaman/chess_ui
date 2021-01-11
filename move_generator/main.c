@@ -584,8 +584,11 @@ int main(int argc, char *argv[]){
 		printf("Checking board initialization...\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		printf("Checking movegen test...\n\n");
-		ASSERT(testMoves());
+		// ASSERT(testMoves());
 
+		// char testFEN[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "; // pos2
+		// char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos4
+		// char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
 		parseFEN(START_FEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
@@ -604,7 +607,8 @@ int main(int argc, char *argv[]){
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		printf("Checking movegen test...\n\n");
 		ASSERT(testMoves());
-		char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
+		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
+		char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos3
 		parseFEN(testFEN, bs);
 
 		int myMoves[255][4];
@@ -617,16 +621,11 @@ int main(int argc, char *argv[]){
 			myMoves[m][3] = -1 * treeSearch(bs, 2);
 			undoMove(bs);
 		}
-		// int m = 0;
-		// printf("evaluating: ");
-		// printMove(m, myMoves[m][0], myMoves[m][1], myMoves[m][2]);
-		// makeMove(bs, myMoves[m][0], myMoves[m][1], myMoves[m][2]);
-		// myMoves[m][3] = -1 * treeSearch(bs, 2);
-		// undoMove(bs);
 
 		printf(RED "\n====== AFTER UNDOS ========\n" reset);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
+		exit(0);
 		for(int m = 0 ; myMoves[m][2] != -1 ; m++){
 			printf(CYN "move %d eval: " reset "%d\n", m, myMoves[m][3]);
 		}

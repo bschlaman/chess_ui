@@ -112,9 +112,17 @@ void makeMove(BOARD_STATE *bs, int from, int to, int moveType){
 		if(from == 98 && cperm & WKCA){ bs -> castlePermission &= 7; }
 		if(from == 91 && cperm & WQCA){ bs -> castlePermission &= 11; }
 	}
-	if(piece == bR){
+	else if(piece == bR){
 		if(from == 28 && cperm & BKCA){ bs -> castlePermission &= 13; }
 		if(from == 21 && cperm & BQCA){ bs -> castlePermission &= 14; }
+	}
+	if(capturedPiece == wR){
+		if(to == 98 && cperm & WKCA){ bs -> castlePermission &= 7; }
+		if(to == 91 && cperm & WQCA){ bs -> castlePermission &= 11; }
+	}
+	else if(capturedPiece == bR){
+		if(to == 28 && cperm & BKCA){ bs -> castlePermission &= 13; }
+		if(to == 21 && cperm & BQCA){ bs -> castlePermission &= 14; }
 	}
 	// unset en passant sq
 	if(moveType != 1){
