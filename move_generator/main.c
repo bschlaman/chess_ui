@@ -193,51 +193,6 @@ counter++;
 	}
 	return false;
 }
-// given a color and board, is that side in check?
-// TODO: wow why am I copy pasting my move gen logic
-// TODO: this is the biggest slowdown in the program
-// likely since I am looking up the entire board again
-int oldisCheck(int *board, int color){
-counter++;
-	int i, piece, cs, sq, d, type;
-	int cpiece;
-
-	for(i = 0 ; i < 64 ; i++){
-		sq = sq64to120(i);
-		piece = board[sq64to120(i)];	
-		if(piece != EMPTY && getColor(piece) != color){
-			// pieces
-			if(!isPawn[piece]){
-				type = getType(piece);
-				for(d = 0 ; d < numDirections[type] ; d++){
-					cs = sq;
-					while(cpiece = board[cs += translation[type][d]] != OFFBOARD){
-						// if the piece is the king of opposite color
-						// if not empty, either break or its the king
-						if(cpiece != EMPTY){
-							if(getColor(cpiece) == color && isKing[cpiece]){
-								return true;
-							}
-							else { break; }
-						}
-						if(type == KNIGHT || type == KING){ break; }
-					}
-				}
-			} else {
-				// pawns
-				cpiece = board[cs = sq - (1 - 2 * getColor(piece)) * 10 + 1];
-				if(cpiece != OFFBOARD && getColor(cpiece) == color && isKing[cpiece]){
-					return true;
-				}
-				cpiece = board[cs = sq - (1 - 2 * getColor(piece)) * 10 - 1];
-				if(cpiece != OFFBOARD && getColor(cpiece) == color && isKing[cpiece]){
-					return true;
-				}
-			}
-		}
-	}
-	return false;
-}
 
 int enPasCorrectColor(int enPas, int side){
 	return enPas - 40 - 30 * side >= 1 && enPas - 40 - 30 * side <= 8;
