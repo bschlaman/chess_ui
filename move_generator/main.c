@@ -68,10 +68,22 @@ int genLegalMoves(BOARD_STATE *bs, MOVE moves[]){
 	int sq, piece, side;
 	side = bs -> side;
 	int kingsq = bs -> kingSq[side];
-	int d = isCheck(bs -> board, kingsq, side);
+	int num = isCheck(bs -> board, kingsq, side);
 
-	// if king is in check
-	if(d >= 0){
+	if(num == 0){
+		// if king not in check
+		for(i = 0 ; i < 64 ; i++){
+			sq = sq64to120(i);
+			piece = bs -> board[sq];
+			if(piece != EMPTY && getColor(piece) == side){
+				total += pieceMoves(bs, piece, sq, moves, total);
+			}
+		}
+	} else if(num == 1){
+		// in check from 1 piece
+		// option 1: move king
+		// option 2: capture the piece
+		// option 3: block piece
 		for(i = 0 ; i < 64 ; i++){
 			sq = sq64to120(i);
 			piece = bs -> board[sq];
@@ -81,15 +93,10 @@ int genLegalMoves(BOARD_STATE *bs, MOVE moves[]){
 			}
 		}
 	} else {
-		for(i = 0 ; i < 64 ; i++){
-			sq = sq64to120(i);
-			piece = bs -> board[sq];
-			if(piece != EMPTY && getColor(piece) == side){
-				total += pieceMoves(bs, piece, sq, moves, total);
-			}
-		}
+		// in check from 2 pieces
+		// must move king
+		total += pieceMoves(bs, bs -> board[kingsq], kingsq, moves, total);
 	}
-
 	return total;
 }
 
@@ -163,6 +170,9 @@ void printPieceMoves(BOARD_STATE *bs){
 	printf(BLU "total moves in pos: " reset "%d\n", total);
 }
 
+U64 updatePinned(){
+	return 0ULL;
+}
 // returns the direction, 0 -> 15
 // 0 8 0 - 0
 // 9 0 4 3 -
@@ -172,29 +182,32 @@ void printPieceMoves(BOARD_STATE *bs){
 int isCheck(int *board, int kingsq, int color){
 counter++;
 	int d, cpiece, cs;
+	int numchecks = 0;
 
-	// kings
-	for(d = 0 ; d < 8 ; d++){
-		// TODO: don't need to check if this is OFFBOARD
-		// but may run into a -1 index if using isKing
-		if((cpiece = board[kingsq + translation[KING][d]]) != OFFBOARD){
-			// TODO: Assert the color?
-			if(isKing[cpiece]) return d;
-		}
-	}
+	// now not needed, since this is an invalid board state
+	// // kings
+	// for(d = 0 ; d < 8 ; d++){
+	// 	// TODO: don't need to check if this is OFFBOARD
+	// 	// but may run into a -1 index if using isKing
+	// 	if((cpiece = board[kingsq + translation[KING][d]]) != OFFBOARD){
+	// 		// TODO: Assert the color?
+	// 		if(isKing[cpiece]) numchecks++;
+	// 	}
+	// }
+
 	// knights
 	for(d = 0 ; d < 8 ; d++){
 		if((cpiece = board[kingsq + translation[0][d]]) != OFFBOARD \
 			&& getType(cpiece) == KNIGHT \
 			&& color != getColor(cpiece)){
-			return d + 8;
+			numchecks++; break;
 		}
 	}
 	// pawns
-	if(color == BLACK && board[kingsq + 9] == wP) return 1;
-	if(color == BLACK && board[kingsq + 11] == wP) return 2;
-	if(color == WHITE && board[kingsq - 9] == bP) return 0;
-	if(color == WHITE && board[kingsq - 11] == bP) return 3;
+	if(color == BLACK && board[kingsq +	9] == wP) numchecks++;
+	else if(color == BLACK && board[kingsq + 11] == wP) numchecks++;
+	if(color == WHITE && board[kingsq - 9] == bP) numchecks++;
+	else if(color == WHITE && board[kingsq - 11] == bP) numchecks++;
 	// ray
 	for(d = 0 ; d < 8 ; d++){
 		cs = kingsq;
@@ -202,37 +215,41 @@ counter++;
 			if(cpiece != EMPTY){
 				if(getColor(cpiece) != color){
 					if(d < 4){
-						if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) return d;
-					}
-					if(d >= 4 && d < 8){
-						if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) return d;
+						if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) numchecks++;
+					} else if(d >= 4 && d < 8){
+						if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) numchecks++;
 					}
 				}
 				break;
 			}
 		}
 	}
-	return -1;
+	return numchecks;
 }
 
 int enPasCorrectColor(int enPas, int side){
 	return enPas - 40 - 30 * side >= 1 && enPas - 40 - 30 * side <= 8;
 }
 
-int newBoardCheckEP(BOARD_STATE *bs, int sq, int cs){
+int epCheck(BOARD_STATE *bs, int sq, int es){
+	// es = ep square
 	int *board = bs -> board;
-	int check = false;
 	int side = bs -> side;
 	int kingsq = bs -> kingSq[side];
+	int dir = getPinDir(kingsq, sq);
+	ASSERT(dir == getPinDir(kingsq, es));
+	int cpiece, type;
 
-	board[cs] = board[sq];
-	board[sq] = EMPTY;
-	board[cs + (1 - 2 * side) * 10] = EMPTY;
-	check = isCheck(board, kingsq, side);
-	board[sq] = board[cs];
-	board[cs] = EMPTY;
-	board[cs + (1 - 2 * side) * 10] = side ? wP : bP;
-	return check;
+	while((cpiece = board[kingsq += dir]) != OFFBOARD){
+		if(cpiece == EMPTY || kingsq == sq || kingsq == es) continue;
+		else if(getColor(cpiece) == side) return false;
+		else {
+			type = getType(cpiece);
+			if(type == ROOK || type == QUEEN) return true;
+			else { return false; }
+		}
+	}
+	return false;
 }
 int newBoardCheck(BOARD_STATE *bs, int sq, int cs){
 	int *board = bs -> board;
@@ -261,7 +278,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 	// but it's cleaner for now
 	// moves[total+offset] = buildMove(from, to, 0);
 	// TODO: should I get color from the BOARD_STATE?
-	int i = 0, cs = sq, cs2, enPasCaptureFromSq = OFFBOARD, total = 0, d, type, cpiece;
+	int i = 0, cs = sq, cs2, enPasCaptureFromSq = OFFBOARD, total = 0, d, dir, type, cpiece;
 	int *board = bs -> board;
 	ASSERT(sq >= 0 && sq <= 120 && board[sq] != OFFBOARD);
 
@@ -269,6 +286,29 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 	if(!isPawn[piece]){
 		// type = proper index for translation[][]
 		type = getType(piece);
+
+		// pinned pieces
+		if(1ULL << sq120to64(sq) & bs -> pinned){
+			if(type == KNIGHT) return 0;
+			else {
+				dir = getPinDir(bs -> kingSq[bs -> side], sq);
+				if(type == ROOK && (abs(dir)==11||abs(dir)==9)) return 0;
+				else if(type == BISHOP && (abs(dir)==10||abs(dir)==1)) return 0;
+				else {
+					cs = sq;
+					while((cpiece = board[cs += offset]) == EMPTY){
+						saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++
+					}
+					saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++
+					cs = sq;
+					while((cpiece = board[cs -= offset]) == EMPTY){
+						saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++
+					}
+				}
+				return total;
+			}
+		}
+
 		// for each direction
 		for(d = 0 ; d < numDirections[type] ; d++){
 			cs = sq;
@@ -289,6 +329,40 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 		}
 	} else {
 		// pawns =================
+
+		// pinned pawns
+		if(1ULL << sq120to64(sq) & bs -> pinned){
+			dir = getPinDir(bs -> kingSq[bs -> side], sq);
+			// horizontal
+			if(abs(dir) == 1) return 0;
+			// vertical
+			else if(abs(dir) == 10){
+				// forward 1
+				cs = sq - (1 - 2 * getColor(piece)) * 10;
+				if(board[cs] == EMPTY){ saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++; }
+				// forward 2
+				if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
+					cs = sq - (1 - 2 * getColor(piece)) * 20;
+					cs2 = sq - (1 - 2 * getColor(piece)) * 10;
+					if(board[cs] == EMPTY && board[cs2] == EMPTY){ saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++; }
+				}
+			}
+			// diagonal
+			else {
+				cs = sq + dir;
+				if(board[cs] != EMPTY){
+					if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
+						saveMove(moves, total + offset, buildMove(sq, cs, 12)); total++;
+						saveMove(moves, total + offset, buildMove(sq, cs, 13)); total++;
+						saveMove(moves, total + offset, buildMove(sq, cs, 14)); total++;
+						saveMove(moves, total + offset, buildMove(sq, cs, 15)); total++;
+					} else {
+						saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++;
+					}
+				}
+			}
+			return total;
+		}
 
 		// forward 1
 		// mapping {0,1} -> {-1,1} -> {-10,10}
@@ -345,13 +419,13 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 + 1;
 			if(sq == enPasCaptureFromSq \
 				&& enPasCorrectColor(cs, getColor(piece)) \
-				&& !newBoardCheckEP(bs, sq, cs)){
+				&& !epCheck(bs, sq, enPasCaptureFromSq-1)){
 				saveMove(moves, total + offset, buildMove(sq, cs, 5)); total++;
 			}
 			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 - 1;
 			if(sq == enPasCaptureFromSq \
 				&& enPasCorrectColor(cs, getColor(piece)) \
-				&& !newBoardCheckEP(bs, sq, cs)){
+				&& !epCheck(bs, sq, enPasCaptureFromSq+1)){
 				saveMove(moves, total + offset, buildMove(sq, cs, 5)); total++;
 			}
 		}
@@ -407,14 +481,13 @@ void resetBoard(BOARD_STATE *bs){
 	for(i = 0 ; i < 64 ; i++){
 		bs -> board[sq64to120(i)] = EMPTY;
 	}
-	// I should make these the starting pos
-	// and load the startFEN
 	bs -> side = NEITHER;
 	bs -> castlePermission = 0;
 	bs -> enPas = OFFBOARD;
 	bs -> ply = 1;
 	bs -> kingSq[WHITE] = 95;
 	bs -> kingSq[BLACK] = 25;
+	bs -> pinned = 0ULL;
 }
 
 void printBoard(BOARD_STATE *bs, int option){

@@ -84,6 +84,8 @@ typedef struct {
 	// Hash key, unique representation of board
 	U64 posKey;
 
+	U64 pinned;
+
 	MOVE_IRREV history[200];
 } BOARD_STATE;
 
