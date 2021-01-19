@@ -131,7 +131,6 @@ void printLegalMoves(BOARD_STATE *bs){
 	char sqfr[3];
 	MOVE moves[255];
 	int total = genLegalMoves(bs, moves);
-	// TODO: need to find a better condition to break for loop
 	for(m = 0 ; m < total ; m++){
 		from = getFrom(moves[m]);
 		to = getTo(moves[m]);
@@ -460,12 +459,12 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 				else if(type == BISHOP && (abs(dir)==10||abs(dir)==1)) return 0;
 				else {
 					cs = sq;
-					while((cpiece = board[cs += offset]) == EMPTY){
+					while((cpiece = board[cs += dir]) == EMPTY){
 						saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++;
 					}
 					saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++;
 					cs = sq;
-					while((cpiece = board[cs -= offset]) == EMPTY){
+					while((cpiece = board[cs -= dir]) == EMPTY){
 						saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++;
 					}
 				}
@@ -761,7 +760,7 @@ int main(int argc, char *argv[]){
 		printf("Checking board initialization...\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		printf("Checking movegen test...\n\n");
-		// ASSERT(testMoves());
+		ASSERT(testMoves());
 
 		// print board
 		// char testFEN[] = "rnbqkbnr/pppp3p/8/5Pp1/8/8/PPPPP1PP/RN2K3 w KQkq g6"; // debug
@@ -803,18 +802,17 @@ int main(int argc, char *argv[]){
 		printf("Checking board initialization...\n");
 		ASSERT(bs -> castlePermission == 0 && bs -> enPas == OFFBOARD);
 		printf("Checking movegen test...\n\n");
-		// ASSERT(testMoves());
+		ASSERT(testMoves());
 
 		// char testFEN[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "; // pos2
-		// char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos4
+		char testFEN[] = "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -"; // pos4
 		// char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
-		char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
 		// parseFEN(START_FEN, bs);
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
 
-		int tot = (int)perft(bs, 2);
+		int tot = (int)perft(bs, 3);
 		// int tot = (int)perft2(bs, 5);
 		printf(RED "total: " reset "%i\n", tot);
 		printf(RED "\n====== AFTER UNDOS ========\n" reset);
@@ -829,27 +827,42 @@ int main(int argc, char *argv[]){
 		printf("Checking movegen test...\n\n");
 		ASSERT(testMoves());
 		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
-		char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos3
+		// char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
+		char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos4
 		parseFEN(testFEN, bs);
 
 		MOVE myMoves[255];
 		int evals[255];
 		int total = genLegalMoves(bs, myMoves);
 
-		for(int m = 0 ; m < total ; m++){
-			printf("evaluating: ");
-			printMove(m, myMoves[m]);
-			makeMove(bs, myMoves[m]);
-			evals[m] = -1 * treeSearch(bs, 2);
-			undoMove(bs);
-		}
-
-		printf(RED "\n====== AFTER UNDOS ========\n" reset);
+		// for(int m = 0 ; m < total ; m++){
+		// 	printf("evaluating: ");
+		// 	printMove(m, myMoves[m]);
+		// 	makeMove(bs, myMoves[m]);
+		// 	// evals[m] = -1 * treeSearch(bs, 2);
+		// 	printLegalMoves(bs);
+		// 	undoMove(bs);
+		// }
+		int m;
+		m = 2;
+		printf("evaluating: ");
+		printMove(m, myMoves[m]);
+		makeMove(bs, myMoves[m]);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
-		for(int m = 0 ; m < total ; m++){
-			printf(CYN "move %d eval: " reset "%d\n", m, evals[m]);
-		}
-		printf(RED "ischeck count: %d\n" reset, counter);
+		printBoard(bs, OPT_PINNED);
+
+		// print moves
+		printLegalMoves(bs);
+
+		undoMove(bs);
+
+		// printf(RED "\n====== AFTER UNDOS ========\n" reset);
+		// printBoard(bs, OPT_64_BOARD);
+		// printBoard(bs, OPT_BOARD_STATE);
+		// for(int m = 0 ; m < total ; m++){
+		// 	printf(CYN "move %d eval: " reset "%d\n", m, evals[m]);
+		// }
+		// printf(RED "ischeck count: %d\n" reset, counter);
 	}
 }

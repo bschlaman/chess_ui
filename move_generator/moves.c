@@ -76,10 +76,6 @@ void makeMove(BOARD_STATE *bs, MOVE move){
 	// ----------------------
 	int *board = bs -> board;
 	int piece = board[from];
-	// TODO: if a king moves, only need to update that side
-	bs -> pinned = 0ULL;
-	updatePins(bs, WHITE);
-	updatePins(bs, BLACK);
 
 	// special stuff
 	switch(moveType){
@@ -170,9 +166,13 @@ void makeMove(BOARD_STATE *bs, MOVE move){
 		bs -> kingSq[bs -> side] = to;
 	}
 
-	// setting the pieces and switching side
+	// setting the pieces, switching side, and updating pins
 	board[to] = piece;
 	board[from] = EMPTY;
+	// TODO: if a king moves, only need to update that side
+	bs -> pinned = 0ULL;
+	updatePins(bs, WHITE);
+	updatePins(bs, BLACK);
 	// is this the best way to switch sides?
 	bs -> side = !(bs -> side);
 	ASSERT(bs -> side == WHITE || bs -> side == BLACK);
