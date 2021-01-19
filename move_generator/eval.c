@@ -99,7 +99,7 @@ int mobility(BOARD_STATE *bs){
 							}
 							break;
 						}
-						if(type == 0 || type == 4){ break; }
+						if(type == KNIGHT || type == KING){ break; }
 					}
 				}
 			} else {

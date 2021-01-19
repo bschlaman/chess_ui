@@ -24,7 +24,6 @@ void updatePins(BOARD_STATE *bs, int side){
 	int *board = bs -> board;
 	int d, cs, cpiece;
 	bool ownPieceSeen;
-	bs -> pinned = 0ULL;
 	for(d = 0 ; d < numDirections[KING] ; d++){
 		cs = kingsq;
 		ownPieceSeen = false;
@@ -32,13 +31,13 @@ void updatePins(BOARD_STATE *bs, int side){
 			if(cpiece == EMPTY) continue;
 			else if(getColor(cpiece) != side && !ownPieceSeen) break;
 			else if(getColor(cpiece) == side && ownPieceSeen) break;
-			else if(getColor(cpiece) == side && !ownPieceSeen) ownPieceSeen = true;
+			else if(getColor(cpiece) == side && !ownPieceSeen) ownPieceSeen = cs;
 			// opposing piece, and ownPieceSeen
 			else {
 				if(d < 4){
-					if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) bs -> pinned |= 1ULL << sq120to64(cs);
+					if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) bs -> pinned |= 1ULL << sq120to64(ownPieceSeen);
 				} else if(d >= 4 && d < 8){
-					if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) bs -> pinned |= 1ULL << sq120to64(cs);
+					if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) bs -> pinned |= 1ULL << sq120to64(ownPieceSeen);
 				}
 				break;
 			}
@@ -78,6 +77,7 @@ void makeMove(BOARD_STATE *bs, MOVE move){
 	int *board = bs -> board;
 	int piece = board[from];
 	// TODO: if a king moves, only need to update that side
+	bs -> pinned = 0ULL;
 	updatePins(bs, WHITE);
 	updatePins(bs, BLACK);
 

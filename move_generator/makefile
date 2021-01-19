@@ -12,6 +12,6 @@ search:
 	./out -s
 only:
 	cc main.c fen.c data.c init.c moves.c eval.c test.c -o out
-test:
+sand:
 	cc sand.c data.c -o out_test
 	./out_test

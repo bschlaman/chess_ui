@@ -95,7 +95,7 @@ typedef struct {
 // global mode
 enum { NORMAL_MODE, FEN_MODE, PERFT_MODE, SEARCH_MODE };
 // printBoard opts
-enum { OPT_64_BOARD, OPT_BOARD_STATE, OPT_120_BOARD };
+enum { OPT_64_BOARD, OPT_BOARD_STATE, OPT_120_BOARD, OPT_PINNED };
 
 /* MACROS */
 /* GLOBALS */
@@ -133,6 +133,7 @@ extern int getFrom(MOVE m);
 extern int getTo(MOVE m);
 extern int getMType(MOVE m);
 extern MOVE buildMove(int from, int to, int movetype);
+extern void updatePins(BOARD_STATE *bs, int side);
 extern void makeMove(BOARD_STATE *bs, MOVE move);
 extern void undoMove(BOARD_STATE *bs);
 // eval.c

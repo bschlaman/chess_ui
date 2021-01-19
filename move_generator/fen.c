@@ -59,6 +59,11 @@ int parseFEN(char *fen, BOARD_STATE *bs){
 		fen++;
 	}
 
+	// pinned
+	bs -> pinned = 0ULL;
+	updatePins(bs, WHITE);
+	updatePins(bs, BLACK);
+
 	// side
 	bs -> side = (*fen == 'w') ? WHITE : BLACK;
 	fen += 2;
@@ -86,6 +91,7 @@ int parseFEN(char *fen, BOARD_STATE *bs){
 		ASSERT(rank >= 0 && rank <= 8);
 		bs -> enPas = sq64to120(frToSq64(file, rank));
 	}
+
 	return 0;
 }
 

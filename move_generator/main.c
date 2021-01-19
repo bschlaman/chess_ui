@@ -71,8 +71,6 @@ int genLegalMoves(BOARD_STATE *bs, MOVE moves[]){
 	int kingsq = bs -> kingSq[side];
 	int dir = isCheck(bs -> board, kingsq, side);
 
-	// TODO: double check is rare
-	// probably better to return early from isCheck
 	if(dir == -1){
 		// if king not in check
 		for(i = 0 ; i < 64 ; i++){
@@ -94,7 +92,7 @@ int genLegalMoves(BOARD_STATE *bs, MOVE moves[]){
 				// move king
 				if(sq == kingsq) total += pieceMoves(bs, bs -> board[kingsq], kingsq, moves, total);
 				// capture piece or block
-				total += pieceCheckMoves(bs, piece, sq, moves, total);
+				else { total += pieceCheckMoves(bs, piece, sq, moves, total); }
 			}
 		}
 	}
@@ -127,13 +125,6 @@ void printMove(int m, MOVE move){
 	printf("moveType: %d\n", moveType);
 }
 
-void printPinned(U64 pinned){
-	for(int i = 0 ; i < 64 ; i++){
-		printf("%d ", 1ULL << i & pinned);
-		if((i + 1) % 8 == 0) printf("\n");
-	}
-}
-
 // BOARD_STATE arg needed for eval
 void printLegalMoves(BOARD_STATE *bs){
 	int m, from, to, moveType;
@@ -157,6 +148,7 @@ void printLegalMoves(BOARD_STATE *bs){
 		printf("eval for opponent after move: %d\n", eval(bs));
 		undoMove(bs);
 	}
+	printf(BLU "total moves in pos: " reset "%d\n", total);
 }
 
 // TODO: this is broken currently
@@ -200,10 +192,10 @@ counter++;
 		}
 	}
 	// pawns
-	if(color == BLACK && board[kingsq +	9] == wP) return 9;
-	else if(color == BLACK && board[kingsq + 11] == wP) return 11;
-	if(color == WHITE && board[kingsq - 9] == bP) return -9;
-	else if(color == WHITE && board[kingsq - 11] == bP) return -11;
+	if(color == BLACK && board[kingsq +	9] == wP) return 1;
+	else if(color == BLACK && board[kingsq + 11] == wP) return 2;
+	if(color == WHITE && board[kingsq - 9] == bP) return 3;
+	else if(color == WHITE && board[kingsq - 11] == bP) return 0;
 	// ray
 	for(d = 0 ; d < 8 ; d++){
 		cs = kingsq;
@@ -285,7 +277,7 @@ int newBoardCheck(BOARD_STATE *bs, int sq, int cs){
 	board[cs] = board[sq];
 	board[sq] = EMPTY;
 	if(kingsq == sq) kingsq = cs;
-	check = isCheck(board, kingsq, side);
+	check = isCheck(board, kingsq, side) >= 0;
 	board[sq] = board[cs];
 	board[cs] = capturedPiece;
 	return check;
@@ -698,8 +690,8 @@ void printBoard(BOARD_STATE *bs, int option){
 		getCastlePermissions(cperms, bs -> castlePermission);
 		printf(BLU "en passant sq: " reset "%s\n", sqAN);
 		printf(BLU "castlePerms: " reset "%s\n", cperms);
-		printf(BLU "white in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[WHITE], WHITE) ? "true" : "false");
-		printf(BLU "black in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[BLACK], BLACK) ? "true" : "false");
+		printf(BLU "white in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[WHITE], WHITE) >= 0 ? "true" : "false");
+		printf(BLU "black in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[BLACK], BLACK) >= 0 ? "true" : "false");
 		printf(BLU "white kingSq: " reset "%d\n", bs -> kingSq[WHITE]);
 		printf(BLU "black kingSq: " reset "%d\n", bs -> kingSq[BLACK]);
 		printf(BLU "eval: " reset "%d\n", eval(bs));
@@ -711,6 +703,14 @@ void printBoard(BOARD_STATE *bs, int option){
 		bs -> side = !(bs -> side);
 		genFEN(boardFEN, bs);
 		printf(BLU "fen: " reset "%s\n", boardFEN);
+	}
+
+	if(option == OPT_PINNED){
+		printf(YEL " ---- Absolute Pins ---- \n" reset);
+		for(int i = 0 ; i < 64 ; i++){
+			printf("%d ", !!(1ULL << i & bs -> pinned));
+			if((i + 1) % 8 == 0) printf("\n");
+		}
 	}
 }
 
@@ -765,14 +765,14 @@ int main(int argc, char *argv[]){
 
 		// print board
 		// char testFEN[] = "rnbqkbnr/pppp3p/8/5Pp1/8/8/PPPPP1PP/RN2K3 w KQkq g6"; // debug
-		char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
+		// char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
+		char testFEN[] = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1"; // pos3
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
+		printBoard(bs, OPT_PINNED);
 
 		// print moves
-		MOVE myMoves[255];
-		int total = genLegalMoves(bs, myMoves);
 		printLegalMoves(bs);
 	}
 
@@ -807,13 +807,14 @@ int main(int argc, char *argv[]){
 
 		// char testFEN[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "; // pos2
 		// char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos4
+		// char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
 		char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
 		// parseFEN(START_FEN, bs);
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
 
-		int tot = (int)perft(bs, 1);
+		int tot = (int)perft(bs, 2);
 		// int tot = (int)perft2(bs, 5);
 		printf(RED "total: " reset "%i\n", tot);
 		printf(RED "\n====== AFTER UNDOS ========\n" reset);
