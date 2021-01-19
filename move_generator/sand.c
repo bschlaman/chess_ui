@@ -123,6 +123,13 @@ int getPinDir(int kingsq, int pinsq){
 	return 0;
 }
 
+void printPinned(U64 pinned){
+	for(int i = 0 ; i < 64 ; i++){
+		printf("%d ", 1ULL << i & pinned);
+		if((i + 1) % 8 == 0) printf("\n");
+	}
+}
+
 int main(int argc, char *argv[]){
 	initRand();
 	// arg stuff
@@ -139,6 +146,14 @@ int main(int argc, char *argv[]){
 	int pinsq = 83;
 	int dir = getPinDir(kingsq, pinsq);
 	printf("k: %d\np: %d\ndir: %d\n", kingsq, pinsq, dir);
+
+	U64 pinned = 0ULL;
+	pinned |= 5;
+	printPinned(pinned);
+	printf("%llu\n", 1ULL << 0 & pinned);
+	printf("%llu\n", 1ULL << 1 & pinned);
+	printf("%llu\n", 1ULL << 2 & pinned);
+	printf("%llu\n", 1ULL << 3 & pinned);
 
 	return 0;
 }

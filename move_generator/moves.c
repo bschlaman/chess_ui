@@ -36,9 +36,9 @@ void updatePins(BOARD_STATE *bs, int side){
 			// opposing piece, and ownPieceSeen
 			else {
 				if(d < 4){
-					if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) bs -> pinned &= 1ULL << sq120to64(cs);
+					if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) bs -> pinned |= 1ULL << sq120to64(cs);
 				} else if(d >= 4 && d < 8){
-					if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) bs -> pinned &= 1ULL << sq120to64(cs);
+					if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) bs -> pinned |= 1ULL << sq120to64(cs);
 				}
 				break;
 			}
