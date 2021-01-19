@@ -19,6 +19,33 @@ MOVE buildMove(int from, int to, int moveType){
 // so that the reversible aspects can be used
 // both in make and unmake
 
+void updatePins(BOARD_STATE *bs, int side){
+	int kingsq = bs -> kingSq[side];
+	int *board = bs -> board;
+	int d, cs, cpiece;
+	bool ownPieceSeen;
+	bs -> pinned = 0ULL;
+	for(d = 0 ; d < numDirections[KING] ; d++){
+		cs = kingsq;
+		ownPieceSeen = false;
+		while((cpiece = board[cs += translation[KING][d]]) != OFFBOARD){
+			if(cpiece == EMPTY) continue;
+			else if(getColor(cpiece) != side && !ownPieceSeen) break;
+			else if(getColor(cpiece) == side && ownPieceSeen) break;
+			else if(getColor(cpiece) == side && !ownPieceSeen) ownPieceSeen = true;
+			// opposing piece, and ownPieceSeen
+			else {
+				if(d < 4){
+					if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) bs -> pinned &= 1ULL << sq120to64(cs);
+				} else if(d >= 4 && d < 8){
+					if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) bs -> pinned &= 1ULL << sq120to64(cs);
+				}
+				break;
+			}
+		}
+	}
+}
+
 void makeMove(BOARD_STATE *bs, MOVE move){
 	// TODO: looking up the board is very expensive!!!
 	// TODO: I think the logic for 3) is wonky...
@@ -34,9 +61,11 @@ void makeMove(BOARD_STATE *bs, MOVE move){
 	int from = getFrom(move);
 	int to = getTo(move);
 	int moveType = getMType(move);
+	int cperm = bs -> castlePermission;
 	ms -> move = move;
 	ms -> enPas = bs -> enPas;
-	ms -> castlePermission = bs -> castlePermission;
+	ms -> castlePermission = cperm;
+	ms -> pinned = bs -> pinned;
 	if(moveType == 5){
 		capturedPiece = bs -> board[to + (1 - 2 * bs -> side) * 10];
 	} else { capturedPiece = bs -> board[to]; }
@@ -48,7 +77,9 @@ void makeMove(BOARD_STATE *bs, MOVE move){
 	// ----------------------
 	int *board = bs -> board;
 	int piece = board[from];
-	int cperm = bs -> castlePermission;
+	// TODO: if a king moves, only need to update that side
+	updatePins(bs, WHITE);
+	updatePins(bs, BLACK);
 
 	// special stuff
 	switch(moveType){
@@ -175,6 +206,7 @@ void undoMove(BOARD_STATE *bs){
 	bs -> enPas = ms -> enPas;
 	bs -> castlePermission = ms -> castlePermission;
 	capturedPiece = ms -> capturedPiece;
+	bs -> pinned = ms -> pinned;
 
 	// 3.2) restore board
 	// regular captures

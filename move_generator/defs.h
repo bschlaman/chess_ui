@@ -13,7 +13,7 @@ if(!(n)){ \
 }
 #endif
 
-enum { false, true };
+typedef enum { false, true } bool;
 
 #define START_FEN  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 #define MAXM_FEN "R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - -"
@@ -68,6 +68,8 @@ typedef struct {
 	int enPas;
 	int castlePermission;
 	int capturedPiece;
+	// TODO: this is not irreversible
+	U64 pinned;
 } MOVE_IRREV;
 
 typedef struct {

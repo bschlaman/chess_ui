@@ -9,6 +9,7 @@
 
 void printBoard(BOARD_STATE *bs, int options);
 int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset);
+int pieceCheckMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset);
 int genRandomMove(BOARD_STATE *bs);
 void printPieceMoves(BOARD_STATE *bs);
 void saveMove(MOVE moves[], int i, MOVE move);
@@ -70,6 +71,8 @@ int genLegalMoves(BOARD_STATE *bs, MOVE moves[]){
 	int kingsq = bs -> kingSq[side];
 	int num = isCheck(bs -> board, kingsq, side);
 
+	// TODO: double check is rare
+	// probably better to return early from isCheck
 	if(num == 0){
 		// if king not in check
 		for(i = 0 ; i < 64 ; i++){
@@ -88,7 +91,9 @@ int genLegalMoves(BOARD_STATE *bs, MOVE moves[]){
 			sq = sq64to120(i);
 			piece = bs -> board[sq];
 			if(piece != EMPTY && getColor(piece) == side){
-				if(sq == kingsq) total += kingCheckMoves(bs, piece, sq, moves, total);
+				// move king
+				if(sq == kingsq) total += pieceMoves(bs, bs -> board[kingsq], kingsq, moves, total);
+				// capture piece or block
 				total += pieceCheckMoves(bs, piece, sq, moves, total);
 			}
 		}
@@ -231,6 +236,22 @@ int enPasCorrectColor(int enPas, int side){
 	return enPas - 40 - 30 * side >= 1 && enPas - 40 - 30 * side <= 8;
 }
 
+int getPinDir(int kingsq, int pinsq){
+	int diff = pinsq - kingsq;
+	if(diff > 0){
+		if(diff % 11 == 0) return 11;
+		if(diff % 10 == 0) return 10;
+		if(diff % 9 == 0) return 9;
+		if(diff % 1 == 0) return 1;
+	} else {
+		if(diff % 11 == 0) return -11;
+		if(diff % 10 == 0) return -10;
+		if(diff % 9 == 0) return -9;
+		if(diff % 1 == 0) return -1;
+	}
+	return 0;
+}
+
 int epCheck(BOARD_STATE *bs, int sq, int es){
 	// es = ep square
 	int *board = bs -> board;
@@ -251,6 +272,7 @@ int epCheck(BOARD_STATE *bs, int sq, int es){
 	}
 	return false;
 }
+
 int newBoardCheck(BOARD_STATE *bs, int sq, int cs){
 	int *board = bs -> board;
 	int check = false;
@@ -267,47 +289,15 @@ int newBoardCheck(BOARD_STATE *bs, int sq, int cs){
 	return check;
 }
 
-int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
-	// plan here is to use the 120 sq board
-	// and move in particular "directions"
-	// until the piece is OFFBOARD
-	// cs = candidate square
-	// cs2 = candidate square 2 (used for double pawn push)
-	// note that newBoardCheck() is called every time there is a new cs
-	// This means that I check it prematurely in some cases
-	// but it's cleaner for now
-	// moves[total+offset] = buildMove(from, to, 0);
-	// TODO: should I get color from the BOARD_STATE?
+int pieceCheckMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 	int i = 0, cs = sq, cs2, enPasCaptureFromSq = OFFBOARD, total = 0, d, dir, type, cpiece;
 	int *board = bs -> board;
-	ASSERT(sq >= 0 && sq <= 120 && board[sq] != OFFBOARD);
 
-	// move generation
 	if(!isPawn[piece]){
-		// type = proper index for translation[][]
 		type = getType(piece);
 
 		// pinned pieces
-		if(1ULL << sq120to64(sq) & bs -> pinned){
-			if(type == KNIGHT) return 0;
-			else {
-				dir = getPinDir(bs -> kingSq[bs -> side], sq);
-				if(type == ROOK && (abs(dir)==11||abs(dir)==9)) return 0;
-				else if(type == BISHOP && (abs(dir)==10||abs(dir)==1)) return 0;
-				else {
-					cs = sq;
-					while((cpiece = board[cs += offset]) == EMPTY){
-						saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++
-					}
-					saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++
-					cs = sq;
-					while((cpiece = board[cs -= offset]) == EMPTY){
-						saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++
-					}
-				}
-				return total;
-			}
-		}
+		if(1ULL << sq120to64(sq) & bs -> pinned) return 0;
 
 		// for each direction
 		for(d = 0 ; d < numDirections[type] ; d++){
@@ -324,7 +314,7 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 					break;
 				}
 				// stop if piece is a knight or king
-				if(type == KNIGHT || type == KING){ break; }
+				if(type == KNIGHT) break;
 			}
 		}
 	} else {
@@ -430,13 +420,191 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 			}
 		}
 	}
+	return total;
+}
+
+int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
+	// plan here is to use the 120 sq board
+	// and move in particular "directions"
+	// until the piece is OFFBOARD
+	// cs = candidate square
+	// cs2 = candidate square 2 (used for double pawn push)
+	// note that newBoardCheck() is called every time there is a new cs
+	// This means that I check it prematurely in some cases
+	// but it's cleaner for now
+	// moves[total+offset] = buildMove(from, to, 0);
+	// TODO: should I get color from the BOARD_STATE?
+	int i = 0, cs = sq, cs2, enPasCaptureFromSq = OFFBOARD, total = 0, d, dir, type, cpiece;
+	int *board = bs -> board;
+	ASSERT(sq >= 0 && sq <= 120 && board[sq] != OFFBOARD);
+
+	// move generation
+	if(isKing[piece]){
+		// don't move king into check
+		for(d = 0 ; d < numDirections[KING] ; d++){
+			cs = sq;
+			if((cpiece = board[cs += translation[KING][d]]) != OFFBOARD){
+				if(cpiece == EMPTY){
+					if(!newBoardCheck(bs, sq, cs)){ saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++; }
+				} else {
+					if(getColor(piece) != getColor(cpiece)){
+						if(!newBoardCheck(bs, sq, cs)){ saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++; }
+					}
+				}
+			}
+		}
+	} else if(!isPawn[piece]){
+		// type = proper index for translation[][]
+		type = getType(piece);
+
+		// pinned pieces
+		if(1ULL << sq120to64(sq) & bs -> pinned){
+			if(type == KNIGHT) return 0;
+			else {
+				dir = getPinDir(bs -> kingSq[bs -> side], sq);
+				if(type == ROOK && (abs(dir)==11||abs(dir)==9)) return 0;
+				else if(type == BISHOP && (abs(dir)==10||abs(dir)==1)) return 0;
+				else {
+					cs = sq;
+					while((cpiece = board[cs += offset]) == EMPTY){
+						saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++;
+					}
+					saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++;
+					cs = sq;
+					while((cpiece = board[cs -= offset]) == EMPTY){
+						saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++;
+					}
+				}
+				return total;
+			}
+		}
+
+		// for each direction
+		for(d = 0 ; d < numDirections[type] ; d++){
+			cs = sq;
+			// while sq not offboard
+			while((cpiece = board[cs += translation[type][d]]) != OFFBOARD){
+				//if(!newBoardCheck(bs, sq, cs)){
+				if(cpiece == EMPTY){
+					saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++;
+				} else {
+					if(getColor(piece) != getColor(cpiece)){
+						saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++;
+					}
+					break;
+				}
+				// stop if piece is a knight or king
+				// won't ever be a king, since I take care of that earlier
+				if(type == KNIGHT || type == KING){ break; }
+			}
+		}
+	} else {
+		// pawns =================
+
+		// pinned pawns
+		if(1ULL << sq120to64(sq) & bs -> pinned){
+			dir = getPinDir(bs -> kingSq[bs -> side], sq);
+			// horizontal
+			if(abs(dir) == 1) return 0;
+			// vertical
+			else if(abs(dir) == 10){
+				// forward 1
+				cs = sq - (1 - 2 * getColor(piece)) * 10;
+				if(board[cs] == EMPTY){ saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++; }
+				// forward 2
+				if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
+					cs = sq - (1 - 2 * getColor(piece)) * 20;
+					cs2 = sq - (1 - 2 * getColor(piece)) * 10;
+					if(board[cs] == EMPTY && board[cs2] == EMPTY){ saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++; }
+				}
+			}
+			// diagonal
+			else {
+				cs = sq + dir;
+				if(board[cs] != EMPTY){
+					if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
+						saveMove(moves, total + offset, buildMove(sq, cs, 12)); total++;
+						saveMove(moves, total + offset, buildMove(sq, cs, 13)); total++;
+						saveMove(moves, total + offset, buildMove(sq, cs, 14)); total++;
+						saveMove(moves, total + offset, buildMove(sq, cs, 15)); total++;
+					} else {
+						saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++;
+					}
+				}
+			}
+			return total;
+		}
+
+		// forward 1
+		// mapping {0,1} -> {-1,1} -> {-10,10}
+		cs = sq - (1 - 2 * getColor(piece)) * 10;
+		if(board[cs] == EMPTY){
+			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
+				saveMove(moves, total + offset, buildMove(sq, cs, 8)); total++;
+				saveMove(moves, total + offset, buildMove(sq, cs, 9)); total++;
+				saveMove(moves, total + offset, buildMove(sq, cs, 10)); total++;
+				saveMove(moves, total + offset, buildMove(sq, cs, 11)); total++;
+			} else {
+				saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++;
+			}
+		}
+		// forward 2
+		if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
+			cs = sq - (1 - 2 * getColor(piece)) * 20;
+			cs2 = sq - (1 - 2 * getColor(piece)) * 10;
+			if(board[cs] == EMPTY && board[cs2] == EMPTY){
+				saveMove(moves, total + offset, buildMove(sq, cs, 1)); total++;
+			}
+		}
+		// captures
+		cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
+		if(board[cs] != EMPTY && board[cs] != OFFBOARD \
+			&& getColor(piece) != getColor(board[cs])){
+			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
+				saveMove(moves, total + offset, buildMove(sq, cs, 12)); total++;
+				saveMove(moves, total + offset, buildMove(sq, cs, 13)); total++;
+				saveMove(moves, total + offset, buildMove(sq, cs, 14)); total++;
+				saveMove(moves, total + offset, buildMove(sq, cs, 15)); total++;
+			} else {
+				saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++;
+			}
+		}
+		cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
+		if(board[cs] != EMPTY && board[cs] != OFFBOARD \
+			&& getColor(piece) != getColor(board[cs])){
+			if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
+				saveMove(moves, total + offset, buildMove(sq, cs, 12)); total++;
+				saveMove(moves, total + offset, buildMove(sq, cs, 13)); total++;
+				saveMove(moves, total + offset, buildMove(sq, cs, 14)); total++;
+				saveMove(moves, total + offset, buildMove(sq, cs, 15)); total++;
+			} else {
+				saveMove(moves, total + offset, buildMove(sq, cs, 4)); total++;
+			}
+		}
+		// enPas
+		cs = bs -> enPas;
+		if(cs != OFFBOARD){
+			// enPasCaptureFromSq is the same as what it would look like to captrue TO that sq
+			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 + 1;
+			if(sq == enPasCaptureFromSq \
+				&& enPasCorrectColor(cs, getColor(piece)) \
+				&& !epCheck(bs, sq, enPasCaptureFromSq-1)){
+				saveMove(moves, total + offset, buildMove(sq, cs, 5)); total++;
+			}
+			enPasCaptureFromSq = cs - (1 - 2 * !getColor(piece)) * 10 - 1;
+			if(sq == enPasCaptureFromSq \
+				&& enPasCorrectColor(cs, getColor(piece)) \
+				&& !epCheck(bs, sq, enPasCaptureFromSq+1)){
+				saveMove(moves, total + offset, buildMove(sq, cs, 5)); total++;
+			}
+		}
+	}
 
 	// castling
 	int cperm = bs -> castlePermission;
 	if(piece == wK){
 		// if cperm exists, not in check and not thru check and not thru piece
 		if(cperm & WKCA \
-			&& !newBoardCheck(bs, sq, sq) \
 			&& !newBoardCheck(bs, sq, sq + 1) \
 			&& !newBoardCheck(bs, sq, sq + 2) \
 			&& board[96] == EMPTY && board[97] == EMPTY){
@@ -444,7 +612,6 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 			saveMove(moves, total + offset, buildMove(sq, sq + 2, 2)); total++;
 		}
 		if(cperm & WQCA \
-			&& !newBoardCheck(bs, sq, sq) \
 			&& !newBoardCheck(bs, sq, sq - 1) \
 			&& !newBoardCheck(bs, sq, sq - 2) \
 			&& board[92] == EMPTY && board[93] == EMPTY && board[94] == EMPTY){
@@ -454,7 +621,6 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 	}
 	if(piece == bK){
 		if(cperm & BKCA \
-			&& !newBoardCheck(bs, sq, sq) \
 			&& !newBoardCheck(bs, sq, sq + 1) \
 			&& !newBoardCheck(bs, sq, sq + 2) \
 			&& board[26] == EMPTY && board[27] == EMPTY){
@@ -462,7 +628,6 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 			saveMove(moves, total + offset, buildMove(sq, sq + 2, 2)); total++;
 		}
 		if(cperm & BQCA \
-			&& !newBoardCheck(bs, sq, sq) \
 			&& !newBoardCheck(bs, sq, sq - 1) \
 			&& !newBoardCheck(bs, sq, sq - 2) \
 			&& board[22] == EMPTY && board[23] == EMPTY && board[24] == EMPTY){

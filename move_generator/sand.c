@@ -107,6 +107,22 @@ int genLeg(int moves[][4]){
 	}
 }
 
+int getPinDir(int kingsq, int pinsq){
+	int diff = pinsq - kingsq;
+	if(diff > 0){
+		if(diff % 11 == 0) return 11;
+		if(diff % 10 == 0) return 10;
+		if(diff % 9 == 0) return 9;
+		if(diff % 1 == 0) return 1;
+	} else {
+		if(diff % 11 == 0) return -11;
+		if(diff % 10 == 0) return -10;
+		if(diff % 9 == 0) return -9;
+		if(diff % 1 == 0) return -1;
+	}
+	return 0;
+}
+
 int main(int argc, char *argv[]){
 	initRand();
 	// arg stuff
@@ -117,7 +133,12 @@ int main(int argc, char *argv[]){
 	genLeg(moves);
 
 	printf("%d ", sizeof(int));
-	printf("%d ", sizeof(unsigned short));
+	printf("%d \n", sizeof(unsigned short));
+
+	int kingsq = 74;
+	int pinsq = 83;
+	int dir = getPinDir(kingsq, pinsq);
+	printf("k: %d\np: %d\ndir: %d\n", kingsq, pinsq, dir);
 
 	return 0;
 }
