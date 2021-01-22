@@ -22,7 +22,8 @@ int eval(BOARD_STATE *bs){
 	// float mobilityWeight = 0.1;
 	int mobilityWeight = 1;
 	int numLegalMoves = 1;
-	numLegalMoves = mobility(bs);
+	// numLegalMoves = mobility(bs);
+	numLegalMoves = 10;
 
 	int *board = bs -> board;
 	int side = bs -> side;
@@ -220,7 +221,7 @@ U64 perft2(BOARD_STATE *bs, int depth){
 
   for(m = 0 ; m < num ; m++) {
 		makeMove(bs, localLM[m]);
-		nodes += perft(bs, depth - 1);
+		nodes += perft2(bs, depth - 1);
 		undoMove(bs);
   }
 	return nodes;

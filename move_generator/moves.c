@@ -44,6 +44,31 @@ void updatePins(BOARD_STATE *bs, int side){
 		}
 	}
 }
+void updatePins2(BOARD_STATE *bs, int asdf, int side){
+	int kingsq = bs -> kingSq[side];
+	int *board = bs -> board;
+	int d, cs, cpiece;
+	bool ownPieceSeen;
+	for(d = 0 ; d < numDirections[KING] ; d++){
+		cs = kingsq;
+		ownPieceSeen = false;
+		while((cpiece = board[cs += translation[KING][d]]) != OFFBOARD){
+			if(cpiece == EMPTY) continue;
+			else if(getColor(cpiece) != side && !ownPieceSeen) break;
+			else if(getColor(cpiece) == side && ownPieceSeen) break;
+			else if(getColor(cpiece) == side && !ownPieceSeen) ownPieceSeen = cs;
+			// opposing piece, and ownPieceSeen
+			else {
+				if(d < 4){
+					if(getType(cpiece) == BISHOP || getType(cpiece) == QUEEN) bs -> pinned |= 1ULL << sq120to64(ownPieceSeen);
+				} else if(d >= 4 && d < 8){
+					if(getType(cpiece) == ROOK || getType(cpiece) == QUEEN) bs -> pinned |= 1ULL << sq120to64(ownPieceSeen);
+				}
+				break;
+			}
+		}
+	}
+}
 
 void makeMove(BOARD_STATE *bs, MOVE move){
 	// TODO: looking up the board is very expensive!!!

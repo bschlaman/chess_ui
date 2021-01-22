@@ -13,7 +13,7 @@ int pieceCheckMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset
 int genRandomMove(BOARD_STATE *bs);
 void printPieceMoves(BOARD_STATE *bs);
 void saveMove(MOVE moves[], int i, MOVE move);
-int isCheck(int *board, int kingsq, int color);
+int checkDir(int *board, int kingsq, int color);
 
 int sq64to120(int sq64){
 	return sq64 + 21 + 2 * (sq64 - sq64 % 8) / 8;
@@ -69,7 +69,7 @@ int genLegalMoves(BOARD_STATE *bs, MOVE moves[]){
 	int sq, piece, side;
 	side = bs -> side;
 	int kingsq = bs -> kingSq[side];
-	int dir = isCheck(bs -> board, kingsq, side);
+	int dir = checkDir(bs -> board, kingsq, side);
 
 	if(dir == -1){
 		// if king not in check
@@ -178,8 +178,7 @@ U64 updatePinned(){
 // 0 5 k 7 0
 // - 1 6 2 -
 // 0 - 0 - 0
-int isCheck(int *board, int kingsq, int color){
-counter++;
+int checkDir(int *board, int kingsq, int color){
 	int d, cpiece, cs;
 
 	// knights
@@ -276,7 +275,7 @@ int newBoardCheck(BOARD_STATE *bs, int sq, int cs){
 	board[cs] = board[sq];
 	board[sq] = EMPTY;
 	if(kingsq == sq) kingsq = cs;
-	check = isCheck(board, kingsq, side) >= 0;
+	check = checkDir(board, kingsq, side) >= 0;
 	board[sq] = board[cs];
 	board[cs] = capturedPiece;
 	return check;
@@ -322,18 +321,18 @@ int pieceCheckMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset
 			else if(abs(dir) == 10){
 				// forward 1
 				cs = sq - (1 - 2 * getColor(piece)) * 10;
-				if(board[cs] == EMPTY){ saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++; }
+				if(board[cs] == EMPTY && !newBoardCheck(bs, sq, cs)){ saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++; }
 				// forward 2
 				if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
 					cs = sq - (1 - 2 * getColor(piece)) * 20;
 					cs2 = sq - (1 - 2 * getColor(piece)) * 10;
-					if(board[cs] == EMPTY && board[cs2] == EMPTY){ saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++; }
+					if(board[cs] == EMPTY && board[cs2] == EMPTY && !newBoardCheck(bs, sq, cs)){ saveMove(moves, total + offset, buildMove(sq, cs, 0)); total++; }
 				}
 			}
 			// diagonal
 			else {
 				cs = sq + dir;
-				if(board[cs] != EMPTY){
+				if(board[cs] != EMPTY && !newBoardCheck(bs, sq, cs)){
 					if(cs - 20 - 70 * getColor(piece) > 0 && cs - 20 - 70 * getColor(piece) < 9){
 						saveMove(moves, total + offset, buildMove(sq, cs, 12)); total++;
 						saveMove(moves, total + offset, buildMove(sq, cs, 13)); total++;
@@ -596,35 +595,35 @@ int pieceMoves(BOARD_STATE *bs, int piece, int sq, MOVE moves[], int offset){
 
 	// castling
 	int cperm = bs -> castlePermission;
-	if(piece == wK){
+	if(piece == wK && checkDir(board, sq, WHITE) == -1){
 		// if cperm exists, not in check and not thru check and not thru piece
 		if(cperm & WKCA \
+			&& board[96] == EMPTY && board[97] == EMPTY \
 			&& !newBoardCheck(bs, sq, sq + 1) \
-			&& !newBoardCheck(bs, sq, sq + 2) \
-			&& board[96] == EMPTY && board[97] == EMPTY){
+			&& !newBoardCheck(bs, sq, sq + 2)){
 			ASSERT(sq == 95);
 			saveMove(moves, total + offset, buildMove(sq, sq + 2, 2)); total++;
 		}
 		if(cperm & WQCA \
+			&& board[92] == EMPTY && board[93] == EMPTY && board[94] == EMPTY \
 			&& !newBoardCheck(bs, sq, sq - 1) \
-			&& !newBoardCheck(bs, sq, sq - 2) \
-			&& board[92] == EMPTY && board[93] == EMPTY && board[94] == EMPTY){
+			&& !newBoardCheck(bs, sq, sq - 2)){
 			ASSERT(sq == 95);
 			saveMove(moves, total + offset, buildMove(sq, sq - 2, 3)); total++;
 		}
 	}
-	if(piece == bK){
+	else if(piece == bK && checkDir(board, sq, BLACK) == -1){
 		if(cperm & BKCA \
+			&& board[26] == EMPTY && board[27] == EMPTY \
 			&& !newBoardCheck(bs, sq, sq + 1) \
-			&& !newBoardCheck(bs, sq, sq + 2) \
-			&& board[26] == EMPTY && board[27] == EMPTY){
+			&& !newBoardCheck(bs, sq, sq + 2)){
 			ASSERT(sq == 25);
 			saveMove(moves, total + offset, buildMove(sq, sq + 2, 2)); total++;
 		}
 		if(cperm & BQCA \
+			&& board[22] == EMPTY && board[23] == EMPTY && board[24] == EMPTY \
 			&& !newBoardCheck(bs, sq, sq - 1) \
-			&& !newBoardCheck(bs, sq, sq - 2) \
-			&& board[22] == EMPTY && board[23] == EMPTY && board[24] == EMPTY){
+			&& !newBoardCheck(bs, sq, sq - 2)){
 			ASSERT(sq == 25);
 			saveMove(moves, total + offset, buildMove(sq, sq - 2, 3)); total++;
 		}
@@ -691,8 +690,8 @@ void printBoard(BOARD_STATE *bs, int option){
 		getCastlePermissions(cperms, bs -> castlePermission);
 		printf(BLU "en passant sq: " reset "%s\n", sqAN);
 		printf(BLU "castlePerms: " reset "%s\n", cperms);
-		printf(BLU "white in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[WHITE], WHITE) >= 0 ? "true" : "false");
-		printf(BLU "black in check: " reset "%s\n", isCheck(bs -> board, bs -> kingSq[BLACK], BLACK) >= 0 ? "true" : "false");
+		printf(BLU "white in check: " reset "%s\n", checkDir(bs -> board, bs -> kingSq[WHITE], WHITE) >= 0 ? "true" : "false");
+		printf(BLU "black in check: " reset "%s\n", checkDir(bs -> board, bs -> kingSq[BLACK], BLACK) >= 0 ? "true" : "false");
 		printf(BLU "white kingSq: " reset "%d\n", bs -> kingSq[WHITE]);
 		printf(BLU "black kingSq: " reset "%d\n", bs -> kingSq[BLACK]);
 		printf(BLU "eval: " reset "%d\n", eval(bs));
@@ -767,8 +766,9 @@ int main(int argc, char *argv[]){
 		// print board
 		// char testFEN[] = "rnbqkbnr/pppp3p/8/5Pp1/8/8/PPPPP1PP/RN2K3 w KQkq g6"; // debug
 		// char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
+		char testFEN[] = "rnbR1k1r/ppq1bppp/2p4B/8/2B5/8/PPP1NnPP/RN1QK3 b KQ -"; // pos3
 		// char testFEN[] = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1"; // pos3
-		char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos3
+		// char testFEN[] = "rnQq1k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R b KQ -"; // pos3
 		parseFEN(testFEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
@@ -788,7 +788,7 @@ int main(int argc, char *argv[]){
 		int b = -1;
 		for(int m = 0 ; m < total ; m++){
 			makeMove(bs, myMoves[m]);
-			evals[m] = -1 * treeSearch(bs, 2);
+			evals[m] = -1 * treeSearch(bs, 4);
 			undoMove(bs);
 			if(evals[m] > best){
 				best = evals[m];
@@ -807,20 +807,15 @@ int main(int argc, char *argv[]){
 		printf("Checking movegen test...\n\n");
 		ASSERT(testMoves());
 
-		// char testFEN[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "; // pos2
-		// char testFEN[] = "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -"; // pos4
-		char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos3
-		// parseFEN(START_FEN, bs);
-		parseFEN(testFEN, bs);
+		char testFEN[] = "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -"; // pos3
+		parseFEN(START_FEN, bs);
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
 
-		int tot = (int)perft(bs, 3);
+		int tot = (int)perft2(bs, 5);
 		// int tot = (int)perft2(bs, 5);
 		printf(RED "total: " reset "%i\n", tot);
-		printf(RED "\n====== AFTER UNDOS ========\n" reset);
-		printBoard(bs, OPT_64_BOARD);
-		printBoard(bs, OPT_BOARD_STATE);
+		printf(RED "func count: %d\n" reset, counter);
 	}
 
 	// SEARCH_MODE - output first layer of search
@@ -831,34 +826,25 @@ int main(int argc, char *argv[]){
 		ASSERT(testMoves());
 		// char testFEN[] = "4qr1k/6p1/4p2p/p2p2b1/1p2P1Q1/1PrB3P/P2R1PP1/3R2K1 w - -"; // kasparov|karpov
 		// char testFEN[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"; // pos3
-		char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos4
+		// char testFEN[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -"; // pos3
+		// char testFEN[] = "rnbq1k1r/pp1Pbppp/2p4B/8/2B5/8/PPP1NnPP/RN1QK2R b KQ -"; // pos3
+		char testFEN[] = "rnb2k1r/ppqPbppp/2p4B/8/2B5/8/PPP1NnPP/RN1QK2R w KQ -"; // pos3
 		parseFEN(testFEN, bs);
 
 		MOVE myMoves[255];
 		int evals[255];
 		int total = genLegalMoves(bs, myMoves);
+		int t;
 
-		// for(int m = 0 ; m < total ; m++){
-		// 	printf("evaluating: ");
-		// 	printMove(m, myMoves[m]);
-		// 	makeMove(bs, myMoves[m]);
-		// 	// evals[m] = -1 * treeSearch(bs, 2);
-		// 	printLegalMoves(bs);
-		// 	undoMove(bs);
-		// }
-		int m;
-		m = 2;
-		printf("evaluating: ");
-		printMove(m, myMoves[m]);
-		makeMove(bs, myMoves[m]);
-		printBoard(bs, OPT_64_BOARD);
-		printBoard(bs, OPT_BOARD_STATE);
-		printBoard(bs, OPT_PINNED);
-
-		// print moves
-		printLegalMoves(bs);
-
-		undoMove(bs);
+		for(int m = 0 ; m < total ; m++){
+			printf("evaluating: ");
+			//printMove(m, myMoves[m]);
+			makeMove(bs, myMoves[m]);
+			// evals[m] = -1 * treeSearch(bs, 2);
+			t = (int)perft(bs, 1);
+			printf(YEL "\t\t\tTotal moves: " reset "%d\n", t);
+			undoMove(bs);
+		}
 
 		// printf(RED "\n====== AFTER UNDOS ========\n" reset);
 		// printBoard(bs, OPT_64_BOARD);
@@ -866,6 +852,6 @@ int main(int argc, char *argv[]){
 		// for(int m = 0 ; m < total ; m++){
 		// 	printf(CYN "move %d eval: " reset "%d\n", m, evals[m]);
 		// }
-		// printf(RED "ischeck count: %d\n" reset, counter);
+		// printf(RED "checkDir count: %d\n" reset, counter);
 	}
 }
