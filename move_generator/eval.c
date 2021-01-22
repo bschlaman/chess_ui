@@ -3,9 +3,11 @@
 #include "defs.h"
 #include "colors.h"
 
-int mobility(BOARD_STATE *bs);
+int pieceMobility(BOARD_STATE *bs, int piece, int sq);
 
-int eval(BOARD_STATE *bs){
+float eval(BOARD_STATE *bs){
+	int i, sq;
+
 	int materialEval = 0;
 	int mobilityEval = 0;
 	int pawnEval = 0;
@@ -20,10 +22,8 @@ int eval(BOARD_STATE *bs){
 	int pawnPosWeight[8] = {0, 0, 0, 1, 2, 3, 5, 5};
 
 	// float mobilityWeight = 0.1;
-	int mobilityWeight = 1;
-	int numLegalMoves = 1;
-	// numLegalMoves = mobility(bs);
-	numLegalMoves = 10;
+	float mobilityWeight = 0.2;
+	int mobility = 0;
 
 	int *board = bs -> board;
 	int side = bs -> side;
@@ -35,8 +35,10 @@ int eval(BOARD_STATE *bs){
 	int pawns = 0;
 	int piece;
 	int factor;
-	for(int i = 0 ; i < 64 ; i++){
-		piece = board[sq64to120(i)];
+	for(i = 0 ; i < 64 ; i++){
+		sq = sq64to120(i);
+		piece = board[sq];
+
 		factor = 1 - 2 * (side ^ getColor(piece));
 		if(piece == wK || piece == bK) kings += factor;
 		if(piece == wQ || piece == bQ) queens += factor;
@@ -50,6 +52,7 @@ int eval(BOARD_STATE *bs){
 		if(piece == bP && i > 23){
 			pawnEval += factor * pawnPosWeight[(i - i % 8) / 8];
 		}
+		if(piece != EMPTY && getColor(piece) == side) mobility += pieceMobility(bs, piece, sq);
 	}
 	materialEval += kings * kingWeight;
 	materialEval += queens * queenWeight;
@@ -57,7 +60,7 @@ int eval(BOARD_STATE *bs){
 	materialEval += bishops * bishopWeight;
 	materialEval += knights * knightWeight;
 	materialEval += pawns * pawnWeight;
-	mobilityEval = numLegalMoves * mobilityWeight;
+	mobilityEval = mobility * mobilityWeight;
 	// avoid checkmate
 	// TODO: make this better obviously
 	// if(bs -> side == BLACK){
@@ -67,71 +70,21 @@ int eval(BOARD_STATE *bs){
 	// 	printf(YEL "%d\n" reset, numLegalMoves);
 	// 	printf(YEL "%d\n" reset, materialEval);
 	// }
-	if(numLegalMoves == 0){
-		return -100000000;
-	}
-	return materialEval + pawnEval;
+	return materialEval + mobilityEval + pawnEval;
 }
 
-// TODO: this is approximate
-// doesn't count castling, en passant capture
-int mobility(BOARD_STATE *bs){
-	int i, total = 0, sq, cs, cs2, piece, cpiece;
-	int d, type;
+int pieceMobility(BOARD_STATE *bs, int piece, int sq){
+	int d, cs, cpiece, type, total = 0;
 	int *board = bs -> board;
-	int side = bs -> side;
-	int cperm = bs -> castlePermission;
-	
-	for(i = 0 ; i < 64 ; i++){
-		sq = sq64to120(i);
-		piece = board[sq64to120(i)];	
-		if(piece != EMPTY && getColor(piece) == side){
-			// pieces
-			if(!isPawn[piece]){
-				type = getType(piece);
-				for(d = 0 ; d < numDirections[type] ; d++){
-					cs = sq;
-					while((cpiece = board[cs += translation[type][d]]) != OFFBOARD){
-						if(cpiece == EMPTY){
-							if(!newBoardCheck(bs, sq, cs)) total++;
-						} else {
-							if(side != getColor(cpiece)){
-								if(!newBoardCheck(bs, sq, cs)) total++;
-							}
-							break;
-						}
-						if(type == KNIGHT || type == KING){ break; }
-					}
-				}
-			} else {
-				// pawns
-
-				// forward 1
-				// mapping {0,1} -> {-1,1} -> {-10,10}
-				cs = sq - (1 - 2 * getColor(piece)) * 10;
-				if(board[cs] == EMPTY && !newBoardCheck(bs, sq, cs)){ total++; }
-				// forward 2
-				if(sq - 80 + 50 * getColor(piece) > 0 && sq - 80 + 50 * getColor(piece) < 9){
-					cs = sq - (1 - 2 * getColor(piece)) * 20;
-					cs2 = sq - (1 - 2 * getColor(piece)) * 10;
-					if(board[cs] == EMPTY && board[cs2] == EMPTY && !newBoardCheck(bs, sq, cs)){
-						total++;
-					}
-				}
-
-				// captures
-				cs = sq - (1 - 2 * getColor(piece)) * 10 + 1;
-				if(board[cs] != EMPTY && board[cs] != OFFBOARD \
-					&& getColor(piece) != getColor(board[cs]) \
-					&& !newBoardCheck(bs, sq, cs)){
-					total++;
-				}
-				cs = sq - (1 - 2 * getColor(piece)) * 10 - 1;
-				if(board[cs] != EMPTY && board[cs] != OFFBOARD \
-					&& getColor(piece) != getColor(board[cs]) \
-					&& !newBoardCheck(bs, sq, cs)){
-					total++;
-				}
+	// pieces
+	if(!isPawn[piece]){
+		type = getType(piece);
+		for(d = 0 ; d < numDirections[type] ; d++){
+			cs = sq;
+			while((cpiece = board[cs += translation[type][d]]) != OFFBOARD){
+				if(cpiece == EMPTY) total++;
+				else { break;	}
+				if(type == KNIGHT || type == KING){ break; }
 			}
 		}
 	}
@@ -142,12 +95,14 @@ int randInt(int lb, int ub){
 	return rand() % (ub - lb + 1) + lb;
 }
 
-int treeSearch(BOARD_STATE *bs, int depth){
+float treeSearch(BOARD_STATE *bs, int depth){
 	if(depth == 0){ return eval(bs); }
 	int m;
 	int posEval, b = 0;
 	MOVE localLM[255];
 	int total = genLegalMoves(bs, localLM);
+
+	if(total == 0) return -100000;
 
 	// // debug
 	// if(depth == 2){
@@ -164,7 +119,7 @@ int treeSearch(BOARD_STATE *bs, int depth){
 	// 	printLegalMoves(bs);
 	// }
 
-	int bestScore = -100000;
+	float bestScore = -10000;
 	for(m = 0 ; m < total ; m++){
 		// debug
 		// if(depth == 2 && m > 28) return 1;

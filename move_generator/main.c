@@ -788,7 +788,7 @@ int main(int argc, char *argv[]){
 		int b = -1;
 		for(int m = 0 ; m < total ; m++){
 			makeMove(bs, myMoves[m]);
-			evals[m] = -1 * treeSearch(bs, 4);
+			evals[m] = -1 * treeSearch(bs, 3);
 			undoMove(bs);
 			if(evals[m] > best){
 				best = evals[m];
@@ -812,7 +812,7 @@ int main(int argc, char *argv[]){
 		printBoard(bs, OPT_64_BOARD);
 		printBoard(bs, OPT_BOARD_STATE);
 
-		int tot = (int)perft2(bs, 5);
+		int tot = (int)perft2(bs, 3);
 		// int tot = (int)perft2(bs, 5);
 		printf(RED "total: " reset "%i\n", tot);
 		printf(RED "func count: %d\n" reset, counter);

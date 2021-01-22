@@ -139,8 +139,8 @@ extern void undoMove(BOARD_STATE *bs);
 // eval.c
 extern int randInt(int lb, int ub);
 extern int negaMax(BOARD_STATE *bs, int depth);
-extern int eval(BOARD_STATE *bs);
-extern int treeSearch(BOARD_STATE *bs, int depth);
+extern float eval(BOARD_STATE *bs);
+extern float treeSearch(BOARD_STATE *bs, int depth);
 extern U64 perft(BOARD_STATE *bs, int depth);
 extern U64 perft2(BOARD_STATE *bs, int depth);
 // test.c
