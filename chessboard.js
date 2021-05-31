@@ -339,7 +339,7 @@ var randMove = function(){
 	let xhr = new XMLHttpRequest();
 	// let url = "http://192.168.1.90:5812/fen?fen=" + fen;
 	let url = "https://www.schlamalama.com:5812/fen?fen=" + fen;
-	console.log("req: " + url);
+	console.log(url);
 
 	xhr.open('GET', url);
 	xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
