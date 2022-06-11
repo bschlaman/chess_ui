@@ -172,6 +172,7 @@ var selectSquare = function(){
 		targetSquare = blackView ? blackIndex(targetSquare) : targetSquare;
 		pieces[targetSquare] = piece;
 		selSquare = -1;
+		document.getElementById("fen").innerHTML = genFEN();
 	}
 }
 
